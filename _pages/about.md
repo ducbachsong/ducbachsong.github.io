@@ -7,18 +7,21 @@ redirect_from:
   - /about.html
 ---
 
-<!-- TODO: replace everything below with your own introduction. -->
+Hi, I'm a software engineer based in Tokyo, where my work involves building quality software and products.
 
-One or two sentences on who you are and what you work on.
+I graduated in Information Technology from FPT University, Vietnam. While I was at school, I also contributed to building a small model with a ReinForcement Learning architecture for schedule optimization.
 
-A second paragraph with a little more detail — your current focus, what you
-find interesting, what you are looking for.
+I have two years of experience as a software developer and one year as a business analyst. Right now, I focus on both my career and my personal research.
 
-## What I'm working on
+My research interests lie in optimization algorithms for models, mostly focused on small models. Specifically, I'm interested in contributing efficient algorithms that solve one specific problem well, rather than building a multi-purpose model.
 
-- A project, with a [link](https://github.com/ducbachsong)
-- Another one
+## Education
 
-## Get in touch
+Bachelor of Information Technology, 2020–2024, FPT University
 
-The icons in the sidebar link to my profiles. You can also email me.
+## Experience
+
+Software Engineer, VTI Co., Ltd., 2024–2026  
+Software Engineer, Freelance, 2023–2024
+
+## News
