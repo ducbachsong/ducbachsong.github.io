@@ -1,0 +1,3 @@
+device CPU, PyTorch 2.12.0+cpu
+for-loop     24.20 ms per step   (148 parameter tensors, 8.9M values)
+foreach      23.01 ms per step   (148 parameter tensors, 8.9M values)

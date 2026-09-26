@@ -1,0 +1,4 @@
+device Tesla T4, PyTorch 2.11.0+cu128
+for-loop     15.47 ms per step   (148 parameter tensors, 8.9M values)
+foreach       4.09 ms per step   (148 parameter tensors, 8.9M values)
+fused         1.95 ms per step   (148 parameter tensors, 8.9M values)

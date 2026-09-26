@@ -1,0 +1,45 @@
+Test run for <temp>\Gpt2Trainer.Tests.dll (.NETCoreApp,Version=v8.0)
+VSTest version 17.11.1 (x64)
+
+Starting test execution, please wait...
+A total of 1 test files matched the specified pattern.
+[xUnit.net 00:00:00.00] xUnit.net VSTest Adapter v2.8.2+699d445a1a (64-bit .NET 8.0.31)
+[xUnit.net 00:00:00.21]   Discovering: Gpt2Trainer.Tests
+[xUnit.net 00:00:00.30]   Discovered:  Gpt2Trainer.Tests
+[xUnit.net 00:00:00.31]   Starting:    Gpt2Trainer.Tests
+  Passed Gpt2Trainer.Tests.TokenFeedTests.MicroBatchesWalkEachBatchInOrderThenEnd [434 ms]
+  Passed Gpt2Trainer.Tests.TokenFeedTests.AnEmptyDatasetIsAnError [< 1 ms]
+  Passed Gpt2Trainer.Tests.TokenFeedTests.HeldOutIsTheFirstBatchsFirstRows [2 ms]
+  Passed Gpt2Trainer.Tests.TokenFeedTests.AMicroBatchLargerThanABatchIsRefused [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.BackwardThroughTheModelWritesIntoTheFlatGradients [491 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ScheduleHitsItsLandmarks(step: 9, expectedLearningRate: 1) [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ScheduleHitsItsLandmarks(step: 10, expectedLearningRate: 1) [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ScheduleHitsItsLandmarks(step: 110, expectedLearningRate: 0.10000000000000001) [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ScheduleHitsItsLandmarks(step: 60, expectedLearningRate: 0.55000000000000004) [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ScheduleHitsItsLandmarks(step: 500, expectedLearningRate: 0.10000000000000001) [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ScheduleHitsItsLandmarks(step: 0, expectedLearningRate: 0.10000000000000001) [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ScheduleHitsItsLandmarks(step: 4, expectedLearningRate: 0.5) [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ZeroGradClearsEveryGradient [10 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.BenchmarkOursAgainstTheBuiltInAdamW [2 s]
+  Passed Gpt2Trainer.Tests.AdamWTests.ScheduleRisesThenOnlyFalls [1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.GradientsAddUpOverBackwardCallsLikeTorch [3 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.StepLeavesTheGradientsAtZero [1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.LargeRandomWeightMatchesTheBuiltInAdamW [460 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ClipReturnsTheNormOfAllGradientsTogether [1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.OneStepMatchesTheBuiltInAdamW [1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.AParameterTheLossDidNotUseOnlyDecays [4 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.WeightDecayShrinksMatricesButNotBiases [1 ms]
+[xUnit.net 00:00:03.59]   Finished:    Gpt2Trainer.Tests
+  Passed Gpt2Trainer.Tests.AdamWTests.BiasMatchesTheBuiltInAdamWWithoutDecay [1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.FirstStepMovesEachParameterByAboutTheLearningRate [2 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ClipLeavesSmallGradientsAlone [3 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ClipScalesLargeGradientsDownToMaxNorm [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ParametersKeepTheirValuesAndShapesAfterFlattening [< 1 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.ManyStepsMatchTheBuiltInAdamW [4 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.MixedParametersMatchTorchSharpsBuiltInAdamW [14 ms]
+  Passed Gpt2Trainer.Tests.AdamWTests.WeightDecayFollowsTheShapeNotTheOrder [1 ms]
+
+Test Run Successful.
+Total tests: 30
+     Passed: 30
+ Total time: 5.1260 Seconds

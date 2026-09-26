@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="300" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">Estimated memory bandwidth used, Tesla T4</text>
+  <text x="20" y="44" fill="#495057">bytes moved per step (passes × 35.8 MB, from the operation count) ÷ measured step time</text>
+
+  <!-- grid: x = 230 + 1.2571 * GB/s -->
+  <g stroke="#e9ecef">
+    <line x1="230" y1="60" x2="230" y2="222"/><line x1="355.7" y1="60" x2="355.7" y2="222"/><line x1="481.4" y1="60" x2="481.4" y2="222"/><line x1="607.1" y1="60" x2="607.1" y2="222"/>
+  </g>
+  <g font-size="11" fill="#868e96" text-anchor="middle">
+    <text x="230" y="238">0</text><text x="355.7" y="238">100</text><text x="481.4" y="238">200</text><text x="607.1" y="238">300 GB/s</text>
+  </g>
+
+  <!-- peak -->
+  <line x1="632.3" y1="56" x2="632.3" y2="222" stroke="#495057" stroke-dasharray="4 3"/>
+  <text x="638" y="70" font-size="11" fill="#495057">T4 peak</text>
+  <text x="638" y="84" font-size="11" fill="#495057">320 GB/s</text>
+
+  <g font-size="13">
+    <text x="220" y="88" text-anchor="end" font-weight="600" fill="#212529">ours (23 passes)</text>
+    <rect x="230" y="74" width="284.4" height="22" fill="#e8590c"/>
+    <text x="520" y="90" font-weight="600" fill="#212529">226</text>
+
+    <text x="220" y="124" text-anchor="end" fill="#212529">foreach (~20 passes)</text>
+    <rect x="230" y="110" width="220.1" height="22" fill="#adb5bd"/>
+    <text x="456" y="126" fill="#212529">175</text>
+
+    <text x="220" y="160" text-anchor="end" fill="#212529">fused (7 passes)</text>
+    <rect x="230" y="146" width="161.5" height="22" fill="#868e96"/>
+    <text x="397" y="162" fill="#212529">129</text>
+
+    <text x="220" y="196" text-anchor="end" fill="#212529">for-loop (23 passes)</text>
+    <rect x="230" y="182" width="66.9" height="22" fill="#ced4da"/>
+    <text x="303" y="198" fill="#212529">53</text>
+  </g>
+
+  <text x="20" y="266" font-size="11" fill="#868e96">Ours runs at ~70% of the T4's peak bandwidth: it is memory-bound, so only fewer passes can make it faster.</text>
+  <text x="20" y="282" font-size="11" fill="#868e96">Fused uses the bandwidth less fully but moves 3.3x fewer bytes, and so finishes first.</text>
+</svg>

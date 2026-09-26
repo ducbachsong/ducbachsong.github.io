@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="300" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">AdamW step time on a Tesla T4 (lower is better)</text>
+  <text x="20" y="44" fill="#495057">148 GPT-2 parameter tensors, 8.9M values, fp32; mean of 20 steps after 3 warm-up steps</text>
+
+  <!-- grid: x = 230 + 30 * ms -->
+  <g stroke="#e9ecef">
+    <line x1="230" y1="60" x2="230" y2="250"/><line x1="320" y1="60" x2="320" y2="250"/><line x1="410" y1="60" x2="410" y2="250"/>
+    <line x1="500" y1="60" x2="500" y2="250"/><line x1="590" y1="60" x2="590" y2="250"/><line x1="680" y1="60" x2="680" y2="250"/>
+  </g>
+  <g font-size="11" fill="#868e96" text-anchor="middle">
+    <text x="230" y="266">0</text><text x="320" y="266">3</text><text x="410" y="266">6</text><text x="500" y="266">9</text><text x="590" y="266">12</text><text x="680" y="266">15 ms</text>
+  </g>
+
+  <!-- bars -->
+  <g font-size="13">
+    <text x="220" y="84" text-anchor="end" fill="#212529">PyTorch fused (Python)</text>
+    <rect x="230" y="70" width="58.5" height="22" fill="#868e96"/>
+    <text x="294" y="86" fill="#212529">1.95</text>
+
+    <text x="220" y="120" text-anchor="end" font-weight="600" fill="#212529">ours, flat buffers (C#)</text>
+    <rect x="230" y="106" width="109.2" height="22" fill="#e8590c"/>
+    <text x="345" y="122" font-weight="600" fill="#212529">3.64</text>
+
+    <text x="220" y="156" text-anchor="end" fill="#212529">PyTorch foreach (Python)</text>
+    <rect x="230" y="142" width="122.7" height="22" fill="#adb5bd"/>
+    <text x="359" y="158" fill="#212529">4.09</text>
+
+    <text x="220" y="192" text-anchor="end" fill="#212529">PyTorch for-loop (Python)</text>
+    <rect x="230" y="178" width="464.1" height="22" fill="#ced4da"/>
+    <text x="700" y="194" fill="#212529">15.47</text>
+
+    <text x="220" y="228" text-anchor="end" fill="#212529">TorchSharp built-in (C#)</text>
+    <rect x="230" y="214" width="472.5" height="22" fill="#ced4da"/>
+    <text x="708" y="230" fill="#212529">15.75</text>
+  </g>
+
+  <text x="20" y="290" font-size="11" fill="#868e96">Ours is 4.3x faster than TorchSharp's AdamW, level with foreach; fused is 1.9x faster than ours.</text>
+</svg>
