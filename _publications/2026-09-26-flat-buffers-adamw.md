@@ -1,7 +1,12 @@
 ---
 title: "Flat buffers: a fast AdamW for GPT-2 in C#"
+collection: publications
 date: 2026-09-26
-permalink: /blog/2026/09/26/flat-buffers-adamw/
+permalink: /research/flat-buffers-adamw/
+redirect_from:
+  - /blog/2026/09/26/flat-buffers-adamw/
+excerpt: "One contiguous buffer per state and 10 element-wise operations per step: an AdamW for GPT-2 small in TorchSharp that matches PyTorch bit for bit and runs 4.3x faster than TorchSharp's own AdamW on a Tesla T4."
+read_time: true
 tags:
   - optimization
   - adamw
