@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 290" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <pattern id="cpuclock" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+      <rect width="6" height="6" fill="#e9ecef"/><line x1="0" y1="0" x2="0" y2="6" stroke="#ced4da" stroke-width="2"/>
+    </pattern>
+  </defs>
+  <rect width="760" height="290" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">AdamW update time on a Tesla T4, 8,949,504 values (lower is better)</text>
+  <text x="20" y="44" fill="#495057">Solid: this post, GPU clock (CUDA events), mean of steps 2..20. Hatched: previous post, CPU clock, 148 tensors.</text>
+
+  <!-- grid: x = 250 + 120 * ms -->
+  <g stroke="#e9ecef">
+    <line x1="250" y1="60" x2="250" y2="214"/><line x1="370" y1="60" x2="370" y2="214"/><line x1="490" y1="60" x2="490" y2="214"/>
+    <line x1="610" y1="60" x2="610" y2="214"/><line x1="730" y1="60" x2="730" y2="214"/>
+  </g>
+  <g font-size="11" fill="#868e96" text-anchor="middle">
+    <text x="250" y="230">0</text><text x="370" y="230">1</text><text x="490" y="230">2</text><text x="610" y="230">3</text><text x="730" y="230">4 ms</text>
+  </g>
+
+  <g font-size="13">
+    <text x="240" y="84" text-anchor="end" font-weight="600" fill="#212529">my AdamW, one kernel (CUDA)</text>
+    <rect x="250" y="70" width="125.2" height="22" fill="#e8590c"/>
+    <text x="381" y="86" font-weight="600" fill="#212529">1.043</text>
+
+    <text x="240" y="120" text-anchor="end" fill="#212529">PyTorch fused (C++, libtorch)</text>
+    <rect x="250" y="106" width="137.6" height="22" fill="#868e96"/>
+    <text x="394" y="122" fill="#212529">1.147</text>
+
+    <text x="240" y="156" text-anchor="end" fill="#495057">PyTorch fused (Python)</text>
+    <rect x="250" y="142" width="234" height="22" fill="url(#cpuclock)" stroke="#adb5bd"/>
+    <text x="490" y="158" fill="#495057">1.95</text>
+
+    <text x="240" y="192" text-anchor="end" fill="#495057">flat buffers, 10 ops (C#)</text>
+    <rect x="250" y="178" width="436.8" height="22" fill="url(#cpuclock)" stroke="#adb5bd"/>
+    <text x="693" y="194" fill="#495057">3.64</text>
+  </g>
+
+  <text x="20" y="258" font-size="11" fill="#868e96">Same values, same GPU type. One kernel is 3.5x faster than the flat-buffer AdamW and 1.10x faster than PyTorch's fused AdamW</text>
+  <text x="20" y="274" font-size="11" fill="#868e96">timed the same way. The hatched bars include CPU-side call and wait time that the GPU clock does not see.</text>
+</svg>

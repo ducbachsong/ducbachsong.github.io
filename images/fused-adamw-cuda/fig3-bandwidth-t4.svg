@@ -1,0 +1,47 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="300" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">Estimated memory bandwidth on a Tesla T4 (higher is better)</text>
+  <text x="20" y="44" fill="#495057">Bytes moved per update (7 passes: read p, g, m, v; write p, m, v) divided by the measured time.</text>
+
+  <!-- grid: x = 250 + 1.4 * GB/s -->
+  <g stroke="#e9ecef">
+    <line x1="250" y1="60" x2="250" y2="228"/><line x1="320" y1="60" x2="320" y2="228"/><line x1="390" y1="60" x2="390" y2="228"/>
+    <line x1="460" y1="60" x2="460" y2="228"/><line x1="530" y1="60" x2="530" y2="228"/><line x1="600" y1="60" x2="600" y2="228"/>
+    <line x1="670" y1="60" x2="670" y2="228"/>
+  </g>
+  <line x1="698" y1="56" x2="698" y2="228" stroke="#c92a2a" stroke-dasharray="4 3"/>
+  <text x="698" y="52" font-size="11" fill="#c92a2a" text-anchor="middle">peak 320</text>
+  <g font-size="11" fill="#868e96" text-anchor="middle">
+    <text x="250" y="244">0</text><text x="320" y="244">50</text><text x="390" y="244">100</text><text x="460" y="244">150</text>
+    <text x="530" y="244">200</text><text x="600" y="244">250</text><text x="670" y="244">300 GB/s</text>
+  </g>
+
+  <g font-size="13">
+    <text x="240" y="82" text-anchor="end" font-weight="600" fill="#212529">my AdamW, 8.9M values</text>
+    <rect x="250" y="68" width="336.4" height="20" fill="#e8590c"/>
+    <text x="592" y="83" font-weight="600" fill="#212529">240</text>
+
+    <text x="240" y="110" text-anchor="end" font-weight="600" fill="#212529">my AdamW, 124.4M values</text>
+    <rect x="250" y="96" width="332.9" height="20" fill="#e8590c"/>
+    <text x="589" y="111" font-weight="600" fill="#212529">238</text>
+
+    <text x="240" y="138" text-anchor="end" fill="#212529">PyTorch fused (C++), 124.4M</text>
+    <rect x="250" y="124" width="316.8" height="20" fill="#868e96"/>
+    <text x="573" y="139" fill="#212529">226</text>
+
+    <text x="240" y="166" text-anchor="end" fill="#212529">PyTorch fused (C++), 8.9M</text>
+    <rect x="250" y="152" width="305.9" height="20" fill="#868e96"/>
+    <text x="562" y="167" fill="#212529">219</text>
+
+    <text x="240" y="194" text-anchor="end" fill="#495057">PyTorch fused (Python), 8.9M *</text>
+    <rect x="250" y="180" width="179.9" height="20" fill="#ced4da"/>
+    <text x="436" y="195" fill="#495057">129</text>
+
+    <text x="240" y="222" text-anchor="end" fill="#495057">flat buffers (C#, 23 passes), 8.9M *</text>
+    <rect x="250" y="208" width="316.4" height="20" fill="#ced4da"/>
+    <text x="573" y="223" fill="#495057">226</text>
+  </g>
+
+  <text x="20" y="270" font-size="11" fill="#868e96">* previous post, CPU clock. The flat-buffer AdamW was already as fast per byte as the fused kernels; it moved 3.3x more bytes.</text>
+  <text x="20" y="286" font-size="11" fill="#868e96">Bandwidth is modelled from the passes over memory, not measured with a profiler.</text>
+</svg>
