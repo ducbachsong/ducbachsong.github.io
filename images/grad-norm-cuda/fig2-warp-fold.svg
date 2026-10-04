@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 450" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="450" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">Adding inside a warp: __shfl_xor_sync, every lane in every step</text>
+  <text x="20" y="44" fill="#495057">8 lanes holding 1 … 8 (a real warp has 32 and starts at offset 16). Each step, lane i adds the value of lane i XOR offset,</text>
+  <text x="20" y="60" fill="#495057">read straight from that lane's register: grey line = its own value, orange line = its partner's.</text>
+  <text x="128" y="84" text-anchor="end" font-size="12" fill="#212529">start</text>
+  <text x="128" y="98" text-anchor="end" font-size="10" fill="#868e96">its own value</text>
+  <rect x="138" y="70" width="54" height="30" fill="#fff4e6" stroke="#495057"/><text x="165" y="90" text-anchor="middle" fill="#212529" font-weight="600">1</text>
+  <rect x="200" y="70" width="54" height="30" fill="#fff4e6" stroke="#495057"/><text x="227" y="90" text-anchor="middle" fill="#212529" font-weight="600">2</text>
+  <rect x="262" y="70" width="54" height="30" fill="#fff4e6" stroke="#495057"/><text x="289" y="90" text-anchor="middle" fill="#212529" font-weight="600">3</text>
+  <rect x="324" y="70" width="54" height="30" fill="#fff4e6" stroke="#495057"/><text x="351" y="90" text-anchor="middle" fill="#212529" font-weight="600">4</text>
+  <rect x="386" y="70" width="54" height="30" fill="#fff4e6" stroke="#495057"/><text x="413" y="90" text-anchor="middle" fill="#212529" font-weight="600">5</text>
+  <rect x="448" y="70" width="54" height="30" fill="#fff4e6" stroke="#495057"/><text x="475" y="90" text-anchor="middle" fill="#212529" font-weight="600">6</text>
+  <rect x="510" y="70" width="54" height="30" fill="#fff4e6" stroke="#495057"/><text x="537" y="90" text-anchor="middle" fill="#212529" font-weight="600">7</text>
+  <rect x="572" y="70" width="54" height="30" fill="#fff4e6" stroke="#495057"/><text x="599" y="90" text-anchor="middle" fill="#212529" font-weight="600">8</text>
+  <text x="641" y="90" font-size="11" fill="#868e96">8 different</text>
+  <line x1="165" y1="100" x2="165" y2="150" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="413" y1="100" x2="165" y2="150" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="227" y1="100" x2="227" y2="150" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="475" y1="100" x2="227" y2="150" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="289" y1="100" x2="289" y2="150" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="537" y1="100" x2="289" y2="150" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="351" y1="100" x2="351" y2="150" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="599" y1="100" x2="351" y2="150" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="413" y1="100" x2="413" y2="150" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="165" y1="100" x2="413" y2="150" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="475" y1="100" x2="475" y2="150" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="227" y1="100" x2="475" y2="150" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="537" y1="100" x2="537" y2="150" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="289" y1="100" x2="537" y2="150" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="599" y1="100" x2="599" y2="150" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="351" y1="100" x2="599" y2="150" stroke="#e8590c" stroke-width="1.2"/>
+  <text x="128" y="170" text-anchor="end" font-size="12" fill="#212529">offset 4</text>
+  <rect x="138" y="150" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="165" y="170" text-anchor="middle" fill="#212529" font-weight="600">6</text>
+  <rect x="200" y="150" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="227" y="170" text-anchor="middle" fill="#212529" font-weight="600">8</text>
+  <rect x="262" y="150" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="289" y="170" text-anchor="middle" fill="#212529" font-weight="600">10</text>
+  <rect x="324" y="150" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="351" y="170" text-anchor="middle" fill="#212529" font-weight="600">12</text>
+  <rect x="386" y="150" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="413" y="170" text-anchor="middle" fill="#212529" font-weight="600">6</text>
+  <rect x="448" y="150" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="475" y="170" text-anchor="middle" fill="#212529" font-weight="600">8</text>
+  <rect x="510" y="150" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="537" y="170" text-anchor="middle" fill="#212529" font-weight="600">10</text>
+  <rect x="572" y="150" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="599" y="170" text-anchor="middle" fill="#212529" font-weight="600">12</text>
+  <text x="641" y="170" font-size="11" fill="#868e96">4 different</text>
+  <line x1="165" y1="180" x2="165" y2="230" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="289" y1="180" x2="165" y2="230" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="227" y1="180" x2="227" y2="230" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="351" y1="180" x2="227" y2="230" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="289" y1="180" x2="289" y2="230" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="165" y1="180" x2="289" y2="230" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="351" y1="180" x2="351" y2="230" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="227" y1="180" x2="351" y2="230" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="413" y1="180" x2="413" y2="230" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="537" y1="180" x2="413" y2="230" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="475" y1="180" x2="475" y2="230" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="599" y1="180" x2="475" y2="230" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="537" y1="180" x2="537" y2="230" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="413" y1="180" x2="537" y2="230" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="599" y1="180" x2="599" y2="230" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="475" y1="180" x2="599" y2="230" stroke="#e8590c" stroke-width="1.2"/>
+  <text x="128" y="250" text-anchor="end" font-size="12" fill="#212529">offset 2</text>
+  <rect x="138" y="230" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="165" y="250" text-anchor="middle" fill="#212529" font-weight="600">16</text>
+  <rect x="200" y="230" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="227" y="250" text-anchor="middle" fill="#212529" font-weight="600">20</text>
+  <rect x="262" y="230" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="289" y="250" text-anchor="middle" fill="#212529" font-weight="600">16</text>
+  <rect x="324" y="230" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="351" y="250" text-anchor="middle" fill="#212529" font-weight="600">20</text>
+  <rect x="386" y="230" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="413" y="250" text-anchor="middle" fill="#212529" font-weight="600">16</text>
+  <rect x="448" y="230" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="475" y="250" text-anchor="middle" fill="#212529" font-weight="600">20</text>
+  <rect x="510" y="230" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="537" y="250" text-anchor="middle" fill="#212529" font-weight="600">16</text>
+  <rect x="572" y="230" width="54" height="30" fill="#ffd8a8" stroke="#495057"/><text x="599" y="250" text-anchor="middle" fill="#212529" font-weight="600">20</text>
+  <text x="641" y="250" font-size="11" fill="#868e96">2 different</text>
+  <line x1="165" y1="260" x2="165" y2="310" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="227" y1="260" x2="165" y2="310" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="227" y1="260" x2="227" y2="310" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="165" y1="260" x2="227" y2="310" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="289" y1="260" x2="289" y2="310" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="351" y1="260" x2="289" y2="310" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="351" y1="260" x2="351" y2="310" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="289" y1="260" x2="351" y2="310" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="413" y1="260" x2="413" y2="310" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="475" y1="260" x2="413" y2="310" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="475" y1="260" x2="475" y2="310" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="413" y1="260" x2="475" y2="310" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="537" y1="260" x2="537" y2="310" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="599" y1="260" x2="537" y2="310" stroke="#e8590c" stroke-width="1.2"/>
+  <line x1="599" y1="260" x2="599" y2="310" stroke="#adb5bd" stroke-width="1.5"/>
+  <line x1="537" y1="260" x2="599" y2="310" stroke="#e8590c" stroke-width="1.2"/>
+  <text x="128" y="330" text-anchor="end" font-size="12" fill="#212529">offset 1</text>
+  <rect x="138" y="310" width="54" height="30" fill="#e8590c" stroke="#495057"/><text x="165" y="330" text-anchor="middle" fill="#ffffff" font-weight="600">36</text>
+  <rect x="200" y="310" width="54" height="30" fill="#e8590c" stroke="#495057"/><text x="227" y="330" text-anchor="middle" fill="#ffffff" font-weight="600">36</text>
+  <rect x="262" y="310" width="54" height="30" fill="#e8590c" stroke="#495057"/><text x="289" y="330" text-anchor="middle" fill="#ffffff" font-weight="600">36</text>
+  <rect x="324" y="310" width="54" height="30" fill="#e8590c" stroke="#495057"/><text x="351" y="330" text-anchor="middle" fill="#ffffff" font-weight="600">36</text>
+  <rect x="386" y="310" width="54" height="30" fill="#e8590c" stroke="#495057"/><text x="413" y="330" text-anchor="middle" fill="#ffffff" font-weight="600">36</text>
+  <rect x="448" y="310" width="54" height="30" fill="#e8590c" stroke="#495057"/><text x="475" y="330" text-anchor="middle" fill="#ffffff" font-weight="600">36</text>
+  <rect x="510" y="310" width="54" height="30" fill="#e8590c" stroke="#495057"/><text x="537" y="330" text-anchor="middle" fill="#ffffff" font-weight="600">36</text>
+  <rect x="572" y="310" width="54" height="30" fill="#e8590c" stroke="#495057"/><text x="599" y="330" text-anchor="middle" fill="#ffffff" font-weight="600">36</text>
+  <text x="641" y="323" font-size="11" fill="#868e96">1: the sum,</text>
+  <text x="641" y="337" font-size="11" fill="#868e96">in every lane</text>
+  <text x="165" y="360" text-anchor="middle" font-size="10" fill="#868e96">lane 0</text>
+  <text x="227" y="360" text-anchor="middle" font-size="10" fill="#868e96">lane 1</text>
+  <text x="289" y="360" text-anchor="middle" font-size="10" fill="#868e96">lane 2</text>
+  <text x="351" y="360" text-anchor="middle" font-size="10" fill="#868e96">lane 3</text>
+  <text x="413" y="360" text-anchor="middle" font-size="10" fill="#868e96">lane 4</text>
+  <text x="475" y="360" text-anchor="middle" font-size="10" fill="#868e96">lane 5</text>
+  <text x="537" y="360" text-anchor="middle" font-size="10" fill="#868e96">lane 6</text>
+  <text x="599" y="360" text-anchor="middle" font-size="10" fill="#868e96">lane 7</text>
+  <text x="20" y="390" font-size="11" fill="#495057">Example, offset 4: lane 1 adds lane 5 (2 + 6 = 8) and lane 5 adds lane 1 (6 + 2 = 8). The 8 lanes still add 8 times per step, but the</text>
+  <text x="20" y="404" font-size="11" fill="#495057">number of different sums halves: 8 → 4 → 2 → 1. A warp runs each instruction for its 32 lanes together, so the repeated sums cost nothing.</text>
+  <text x="20" y="430" font-size="11" fill="#868e96">32 lanes: offsets 16, 8, 4, 2, 1, so 5 steps for 32 values. The kernel then keeps the result of one lane (lane 0) and ignores the copies.</text>
+</svg>

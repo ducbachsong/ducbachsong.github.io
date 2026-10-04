@@ -1,0 +1,112 @@
+
+whole_model_norm_matches_pytorch
+    input: grad_norm.item()                     expected: 67.5779 +/- 0.000675779   actual: 67.5779   ok  (line 124)
+    input: grad_norm.item() > 1.0f              expected: true   actual: true   ok  (line 125)
+    input: grad_norm.item()                     expected: 0.0674365 +/- 6.74365e-07   actual: 0.0674365   ok  (line 124)
+    input: grad_norm.item() > 1.0f              expected: false   actual: false   ok  (line 125)
+
+time_20_norms_on_gpt2_small_size
+    2 tensors, 124439808 values
+    time of one norm, in ms:   step   my GradNorm   PyTorch per tensor   PyTorch foreach
+                                  1         1.795                1.925             7.101
+                                  2         1.786                1.868             1.921
+                                  3         1.784                1.858             1.915
+                                  4         1.786                1.874             1.914
+                                  5         1.793                1.881             1.915
+                                  6         1.797                1.906             1.966
+                                  7         1.794                1.901             1.953
+                                  8         1.795                1.904             1.950
+                                  9         1.795                1.898             1.953
+                                 10         1.794                1.902             1.950
+                                 11         1.793                1.898             1.953
+                                 12         1.788                1.923             1.920
+                                 13         1.790                1.864             1.909
+                                 14         1.783                1.845             1.890
+                                 15         1.775                1.846             1.909
+                                 16         1.780                1.849             1.904
+                                 17         1.778                1.846             1.903
+                                 18         1.777                1.847             1.894
+                                 19         1.776                1.848             1.890
+                                 20         1.778                1.845             1.890
+    average of steps 2..20:                 1.786                1.874             1.921
+    memory read, in GB/s:                     279                  266               259
+    PyTorch takes, against mine:                               1.05x             1.08x
+
+time_20_norms
+    input: grad_norm.item()                     expected: 11155.1 +/- 0.111551   actual: 11155.1   ok  (line 193)
+    input: foreach_norm.item<double>()          expected: 11155.1 +/- 0.111551   actual: 11155.1   ok  (line 194)
+
+time_20_norms_on_gpt2_small_148_tensors
+    input: param_shapes.size()                  expected: 148   actual: 148   ok  (line 233)
+    148 tensors, 124439808 values
+    time of one norm, in ms:   step   my GradNorm   PyTorch per tensor   PyTorch foreach
+                                  1         1.794                3.368             2.250
+                                  2         1.793                3.288             2.257
+                                  3         1.797                3.299             2.228
+                                  4         1.792                3.282             2.229
+                                  5         1.792                3.278             2.238
+                                  6         1.787                3.275             2.276
+                                  7         1.786                3.230             2.223
+                                  8         1.788                3.224             2.218
+                                  9         1.787                3.233             2.232
+                                 10         1.790                3.223             2.212
+                                 11         1.786                3.223             2.204
+                                 12         1.786                3.227             2.205
+                                 13         1.788                3.234             2.208
+                                 14         1.792                3.233             2.228
+                                 15         1.787                3.232             2.235
+                                 16         1.786                3.228             2.216
+                                 17         1.786                3.227             2.238
+                                 18         1.786                3.223             2.208
+                                 19         1.789                3.247             2.220
+                                 20         1.787                3.225             2.218
+    average of steps 2..20:                 1.789                3.244             2.226
+    memory read, in GB/s:                     278                  153               224
+    PyTorch takes, against mine:                               1.81x             1.24x
+
+time_20_norms
+    input: grad_norm.item()                     expected: 11155.1 +/- 0.111551   actual: 11155.1   ok  (line 193)
+    input: foreach_norm.item<double>()          expected: 11155.1 +/- 0.111551   actual: 11155.1   ok  (line 194)
+
+computes_the_norm_of_all_gradients_together
+    input: grad_norm.item()                     expected: 9.53939 +/- 1e-05   actual: 9.53939   ok  (line 257)
+
+a_3_and_minus_4_give_5
+    input: grad_norm.item()                     expected: 5   actual: 5   ok  (line 271)
+
+zeros_give_0
+    input: grad_norm.item()                     expected: 0   actual: 0   ok  (line 283)
+
+each_block_adds_its_share_of_the_values
+    input: block_sums[0].tolist()               expected: {8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, ... (512 values)}   actual: {8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, ... (512 values)}   ok  (line 297)
+    input: grad_norm.item()                     expected: 2048   actual: 2048   ok  (line 298)
+
+a_last_round_that_is_not_full_still_counts
+    input: block_sums[0][0].item()              expected: 2048   actual: 2048   ok  (line 317)
+    input: block_sums[0][464].item()            expected: 1600   actual: 1600   ok  (line 318)
+    input: block_sums[0][511].item()            expected: 1024   actual: 1024   ok  (line 319)
+    input: grad_norm.item()                     expected: 1000   actual: 1000   ok  (line 320)
+
+values_after_the_last_whole_float4_still_count
+    input: block_sums[0][0].item()              expected: 16   actual: 16   ok  (line 335)
+    input: grad_norm.item()                     expected: 4   actual: 4   ok  (line 336)
+
+the_same_values_give_the_same_norm_every_time
+    input: grad_norm.item()                     expected: 999.94   actual: 999.94   ok  (line 354)
+    input: grad_norm.item()                     expected: 999.94   actual: 999.94   ok  (line 354)
+    input: grad_norm.item()                     expected: 999.94   actual: 999.94   ok  (line 354)
+    input: grad_norm.item()                     expected: 999.94   actual: 999.94   ok  (line 354)
+    input: block_sums[1][0].item()              expected: 0   actual: 0   ok  (line 356)
+
+only_the_values_in_the_view_count
+    input: grad_norm.item()                     expected: 5   actual: 5   ok  (line 370)
+
+changes_nothing_but_the_norm
+    input: buffer.tensor(grad_norm_index).item() expected: 5.47723 +/- 1e-05   actual: 5.47723   ok  (line 395)
+    input: buffer.tensor(block_sums_index)[0][0].item() expected: 30   actual: 30   ok  (line 396)
+    input: buffer.tensor(block_sums_index)[0][511].item() expected: 0   actual: 0   ok  (line 397)
+    input: buffer.tensor(block_sums_index)[1][0].item() expected: 0   actual: 0   ok  (line 398)
+    input: buffer.tensor(values_index).tolist() expected: {1, 2, 3, 4}   actual: {1, 2, 3, 4}   ok  (line 399)
+    input: buffer.tensor(after_index).tolist()  expected: {7, 7, 7, 7}   actual: {7, 7, 7, 7}   ok  (line 400)
+
+all tests passed

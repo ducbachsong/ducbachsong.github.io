@@ -1,0 +1,75 @@
+
+whole_model_norm_matches_pytorch
+    input: grad_norm.item()                     expected: 67.5779 +/- 0.000675779   actual: 67.5779   ok  (line 123)
+    input: grad_norm.item() > 1.0f              expected: true   actual: true   ok  (line 124)
+    input: grad_norm.item()                     expected: 0.0674365 +/- 6.74365e-07   actual: 0.0674365   ok  (line 123)
+    input: grad_norm.item() > 1.0f              expected: false   actual: false   ok  (line 124)
+
+time_20_norms_on_gpt2_small_size
+    time of one norm, in ms:   step   my GradNorm   PyTorch
+                                  1           1.794     1.960
+                                  2           1.790     1.891
+                                  3           1.789     1.913
+                                  4           1.790     1.915
+                                  5           1.791     1.923
+                                  6           1.795     1.902
+                                  7           1.788     1.905
+                                  8           1.790     1.895
+                                  9           1.791     1.896
+                                 10           1.792     1.898
+                                 11           1.802     1.914
+                                 12           1.788     1.902
+                                 13           1.786     1.883
+                                 14           1.788     1.888
+                                 15           1.786     1.877
+                                 16           1.788     1.882
+                                 17           1.790     1.875
+                                 18           1.796     1.872
+                                 19           1.790     1.880
+                                 20           1.786     1.872
+    average of steps 2..20:                   1.790     1.894   PyTorch takes 1.06x as long
+    memory read, in GB/s:                       278       263
+    input: grad_norm.item()                     expected: 11155.1 +/- 0.111551   actual: 11155.1   ok  (line 180)
+
+computes_the_norm_of_all_gradients_together
+    input: grad_norm.item()                     expected: 9.53939 +/- 1e-05   actual: 9.53939   ok  (line 203)
+
+a_3_and_minus_4_give_5
+    input: grad_norm.item()                     expected: 5   actual: 5   ok  (line 217)
+
+zeros_give_0
+    input: grad_norm.item()                     expected: 0   actual: 0   ok  (line 229)
+
+each_block_adds_its_share_of_the_values
+    input: block_sums[0].tolist()               expected: {8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, ... (512 values)}   actual: {8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, 8192, ... (512 values)}   ok  (line 243)
+    input: grad_norm.item()                     expected: 2048   actual: 2048   ok  (line 244)
+
+a_last_round_that_is_not_full_still_counts
+    input: block_sums[0][0].item()              expected: 2048   actual: 2048   ok  (line 263)
+    input: block_sums[0][464].item()            expected: 1600   actual: 1600   ok  (line 264)
+    input: block_sums[0][511].item()            expected: 1024   actual: 1024   ok  (line 265)
+    input: grad_norm.item()                     expected: 1000   actual: 1000   ok  (line 266)
+
+values_after_the_last_whole_float4_still_count
+    input: block_sums[0][0].item()              expected: 16   actual: 16   ok  (line 281)
+    input: grad_norm.item()                     expected: 4   actual: 4   ok  (line 282)
+
+the_same_values_give_the_same_norm_every_time
+    input: grad_norm.item()                     expected: 999.94   actual: 999.94   ok  (line 300)
+    input: grad_norm.item()                     expected: 999.94   actual: 999.94   ok  (line 300)
+    input: grad_norm.item()                     expected: 999.94   actual: 999.94   ok  (line 300)
+    input: grad_norm.item()                     expected: 999.94   actual: 999.94   ok  (line 300)
+    input: block_sums[1][0].item()              expected: 0   actual: 0   ok  (line 302)
+
+only_the_values_in_the_view_count
+    input: grad_norm.item()                     expected: 5   actual: 5   ok  (line 316)
+
+changes_nothing_but_the_norm
+    input: buffer.tensor(grad_norm_index).item() expected: 5.47723 +/- 1e-05   actual: 5.47723   ok  (line 341)
+    input: buffer.tensor(block_sums_index)[0][0].item() expected: 30   actual: 30   ok  (line 342)
+    input: buffer.tensor(block_sums_index)[0][511].item() expected: 0   actual: 0   ok  (line 343)
+    input: buffer.tensor(block_sums_index)[1][0].item() expected: 0   actual: 0   ok  (line 344)
+    input: buffer.tensor(values_index).tolist() expected: {1, 2, 3, 4}   actual: {1, 2, 3, 4}   ok  (line 345)
+    input: buffer.tensor(after_index).tolist()  expected: {7, 7, 7, 7}   actual: {7, 7, 7, 7}   ok  (line 346)
+
+all tests passed

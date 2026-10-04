@@ -1,0 +1,39 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 300" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="300" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">Gradient norm on a Tesla T4, GPT-2 small's 124,439,808 values (lower is better)</text>
+  <text x="20" y="44" fill="#495057">GPU clock (CUDA events), mean of steps 2..20. Two Colab runs; PyTorch was timed in the same run as each version of mine.</text>
+
+  <!-- grid: x = 250 + 180 * ms -->
+  <g stroke="#e9ecef">
+    <line x1="250" y1="60" x2="250" y2="214"/><line x1="340" y1="60" x2="340" y2="214"/><line x1="430" y1="60" x2="430" y2="214"/>
+    <line x1="520" y1="60" x2="520" y2="214"/><line x1="610" y1="60" x2="610" y2="214"/><line x1="700" y1="60" x2="700" y2="214"/>
+  </g>
+  <g font-size="11" fill="#868e96" text-anchor="middle">
+    <text x="250" y="230">0</text><text x="340" y="230">0.5</text><text x="430" y="230">1</text><text x="520" y="230">1.5</text>
+    <text x="610" y="230">2</text><text x="700" y="230">2.5 ms</text>
+  </g>
+  <!-- 498 MB at 320 GB/s = 1.555 ms -->
+  <line x1="529.9" y1="56" x2="529.9" y2="214" stroke="#2b8a3e" stroke-dasharray="4,3"/>
+  <text x="533" y="66" font-size="10" fill="#2b8a3e">T4 peak: 1.56 ms</text>
+
+  <g font-size="13">
+    <text x="240" y="84" text-anchor="end" fill="#495057">mine, float loads (run 1)</text>
+    <rect x="250" y="70" width="416.9" height="22" fill="#ffc9a8"/>
+    <text x="673" y="86" fill="#495057">2.316</text>
+
+    <text x="240" y="120" text-anchor="end" fill="#495057">PyTorch (run 1)</text>
+    <rect x="250" y="106" width="335.3" height="22" fill="#ced4da"/>
+    <text x="592" y="122" fill="#495057">1.863</text>
+
+    <text x="240" y="156" text-anchor="end" font-weight="600" fill="#212529">mine, float4 loads (run 2)</text>
+    <rect x="250" y="142" width="322.2" height="22" fill="#e8590c"/>
+    <text x="579" y="158" font-weight="600" fill="#212529">1.790</text>
+
+    <text x="240" y="192" text-anchor="end" fill="#212529">PyTorch (run 2)</text>
+    <rect x="250" y="178" width="340.9" height="22" fill="#868e96"/>
+    <text x="597" y="194" fill="#212529">1.894</text>
+  </g>
+
+  <text x="20" y="258" font-size="11" fill="#868e96">Same kernel, same single launch, same flat buffer in both runs: only the loads changed. With one float per load it was 1.24x slower</text>
+  <text x="20" y="274" font-size="11" fill="#868e96">than PyTorch; with float4 it is 1.06x faster, at 278 GB/s, 87% of the T4's 320 GB/s. The dashed line is 498 MB read at that peak.</text>
+</svg>

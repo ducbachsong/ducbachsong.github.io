@@ -1,0 +1,85 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 480" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+  </defs>
+  <rect width="760" height="480" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">One launch, &lt;&lt;&lt;512, 1024&gt;&gt;&gt;: who the 524,288 threads are, and what each one reads</text>
+  <text x="20" y="44" fill="#495057">The launch sets the grid and the block size; the hardware cuts every block into warps of 32 threads, in order.</text>
+
+  <!-- grid of 512 blocks -->
+  <text x="20" y="80" font-weight="600" fill="#212529">grid</text>
+  <text x="20" y="96" font-size="11" fill="#868e96">blockIdx.x</text>
+  <g font-size="12" text-anchor="middle" fill="#212529">
+    <rect x="100" y="66" width="90" height="28" fill="#ffd8a8" stroke="#495057"/><text x="145" y="85">block 0</text>
+    <rect x="190" y="66" width="90" height="28" fill="#fff4e6" stroke="#495057"/><text x="235" y="85">block 1</text>
+    <rect x="280" y="66" width="90" height="28" fill="#fff4e6" stroke="#495057"/><text x="325" y="85">block 2</text>
+    <text x="420" y="85" fill="#868e96">…</text>
+    <rect x="470" y="66" width="90" height="28" fill="#fff4e6" stroke="#495057"/><text x="515" y="85">block 510</text>
+    <rect x="560" y="66" width="90" height="28" fill="#fff4e6" stroke="#495057"/><text x="605" y="85">block 511</text>
+  </g>
+  <text x="660" y="85" font-size="11" fill="#868e96">512 blocks</text>
+
+  <!-- block 0: 32 warps -->
+  <line x1="100" y1="94" x2="100" y2="124" stroke="#adb5bd" stroke-dasharray="3,3"/>
+  <line x1="190" y1="94" x2="650" y2="124" stroke="#adb5bd" stroke-dasharray="3,3"/>
+  <text x="20" y="144" font-weight="600" fill="#212529">block 0</text>
+  <text x="20" y="160" font-size="11" fill="#868e96">1024 threads</text>
+  <g font-size="12" text-anchor="middle" fill="#212529">
+    <rect x="100" y="130" width="100" height="28" fill="#ffc078" stroke="#495057"/><text x="150" y="142">warp 0</text>
+    <rect x="200" y="130" width="100" height="28" fill="#ffd8a8" stroke="#495057"/><text x="250" y="142">warp 1</text>
+    <rect x="300" y="130" width="100" height="28" fill="#ffd8a8" stroke="#495057"/><text x="350" y="142">warp 2</text>
+    <text x="450" y="149" fill="#868e96">…</text>
+    <rect x="550" y="130" width="100" height="28" fill="#ffd8a8" stroke="#495057"/><text x="600" y="142">warp 31</text>
+  </g>
+  <g font-size="9" text-anchor="middle" fill="#495057">
+    <text x="150" y="154">threads 0–31</text><text x="250" y="154">threads 32–63</text><text x="350" y="154">threads 64–95</text><text x="600" y="154">threads 992–1023</text>
+  </g>
+
+  <!-- warp 0: 32 lanes -->
+  <line x1="100" y1="158" x2="100" y2="190" stroke="#adb5bd" stroke-dasharray="3,3"/>
+  <line x1="200" y1="158" x2="660" y2="190" stroke="#adb5bd" stroke-dasharray="3,3"/>
+  <text x="20" y="210" font-weight="600" fill="#212529">warp 0</text>
+  <text x="20" y="226" font-size="11" fill="#868e96">32 lanes</text>
+  <g stroke="#495057" fill="#ffa94d">
+    <rect x="100" y="196" width="17.5" height="24"/><rect x="117.5" y="196" width="17.5" height="24"/><rect x="135" y="196" width="17.5" height="24"/><rect x="152.5" y="196" width="17.5" height="24"/>
+    <rect x="170" y="196" width="17.5" height="24"/><rect x="187.5" y="196" width="17.5" height="24" fill="#e8590c"/><rect x="205" y="196" width="17.5" height="24"/><rect x="222.5" y="196" width="17.5" height="24"/>
+    <rect x="240" y="196" width="17.5" height="24"/><rect x="257.5" y="196" width="17.5" height="24"/><rect x="275" y="196" width="17.5" height="24"/><rect x="292.5" y="196" width="17.5" height="24"/>
+    <rect x="310" y="196" width="17.5" height="24"/><rect x="327.5" y="196" width="17.5" height="24"/><rect x="345" y="196" width="17.5" height="24"/><rect x="362.5" y="196" width="17.5" height="24"/>
+    <rect x="380" y="196" width="17.5" height="24"/><rect x="397.5" y="196" width="17.5" height="24"/><rect x="415" y="196" width="17.5" height="24"/><rect x="432.5" y="196" width="17.5" height="24"/>
+    <rect x="450" y="196" width="17.5" height="24"/><rect x="467.5" y="196" width="17.5" height="24"/><rect x="485" y="196" width="17.5" height="24"/><rect x="502.5" y="196" width="17.5" height="24"/>
+    <rect x="520" y="196" width="17.5" height="24"/><rect x="537.5" y="196" width="17.5" height="24"/><rect x="555" y="196" width="17.5" height="24"/><rect x="572.5" y="196" width="17.5" height="24"/>
+    <rect x="590" y="196" width="17.5" height="24"/><rect x="607.5" y="196" width="17.5" height="24"/><rect x="625" y="196" width="17.5" height="24"/><rect x="642.5" y="196" width="17.5" height="24"/>
+  </g>
+  <g font-size="10" text-anchor="middle" fill="#212529">
+    <text x="108.75" y="212">0</text><text x="196.25" y="212" fill="#ffffff" font-weight="600">5</text><text x="651.25" y="212">31</text>
+  </g>
+  <text x="670" y="212" font-size="11" fill="#868e96">threadIdx.x</text>
+
+  <!-- gradients as float4 groups -->
+  <text x="20" y="282" font-weight="600" fill="#212529">gradients</text>
+  <text x="20" y="298" font-size="11" fill="#868e96">float4 groups</text>
+  <g font-size="11" text-anchor="middle" fill="#212529">
+    <rect x="100" y="272" width="170" height="30" fill="#a5d8ff" stroke="#495057"/><text x="185" y="286">round 0</text><text x="185" y="298" font-size="10" fill="#495057">groups 0 … 524,287</text>
+    <rect x="270" y="272" width="170" height="30" fill="#d0ebff" stroke="#495057"/><text x="355" y="286">round 1</text><text x="355" y="298" font-size="10" fill="#495057">524,288 … 1,048,575</text>
+    <rect x="440" y="272" width="110" height="30" fill="#e7f5ff" stroke="#495057"/><text x="495" y="291" fill="#868e96">…</text>
+    <rect x="550" y="272" width="110" height="30" fill="#e7f5ff" stroke="#495057"/><text x="605" y="286">round 59</text><text x="605" y="298" font-size="10" fill="#495057">part-full</text>
+  </g>
+  <text x="670" y="291" font-size="11" fill="#868e96">31,109,952 groups</text>
+
+  <!-- thread 5's reads -->
+  <path d="M 196 220 C 196 248, 106 244, 106 270" fill="none" stroke="#e8590c" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <path d="M 196 220 C 196 248, 276 244, 276 270" fill="none" stroke="#e8590c" stroke-width="1.6" marker-end="url(#arrow)"/>
+  <g font-size="11" fill="#e8590c">
+    <text x="100" y="322">thread 5 reads group 5 (values 20–23), then group 524,293, then 1,048,581, …: the jump is 524,288, the number of threads.</text>
+  </g>
+  <text x="100" y="346" font-size="11" fill="#495057">Each thread works out its own number: thread_number = blockIdx.x × 1024 + threadIdx.x. Thread 5 of block 0 is number 5;</text>
+  <text x="100" y="360" font-size="11" fill="#495057">thread 5 of block 3 is 3 × 1024 + 5 = 3077. The 524,288 numbers are 0 … 524,287, each used once.</text>
+  <text x="100" y="384" font-size="11" fill="#495057">Round r covers groups r × 524,288 … (r + 1) × 524,288 − 1: every group once, no gap, no overlap. GPT-2 small's</text>
+  <text x="100" y="398" font-size="11" fill="#495057">124,439,808 values are 31,109,952 groups = 59.3 rounds, so each thread reads 59 or 60 float4s, then holds one sum.</text>
+
+  <text x="20" y="428" font-size="11" fill="#868e96">The jump is read from the launch (gridDim.x × blockDim.x), never typed in: with any grid size it equals the number of threads.</text>
+  <text x="20" y="444" font-size="11" fill="#868e96">A smaller jump would read groups twice (the norm comes out too big); a bigger one would skip groups (too small).</text>
+  <text x="20" y="460" font-size="11" fill="#868e96">In every round the 32 lanes of a warp read 32 neighbouring float4s: 512 bytes in a row, which the GPU serves in few memory transactions.</text>
+</svg>

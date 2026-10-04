@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 330" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="330" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">The same 124,439,808 values as 2 tensors and as GPT-2 small's 148 (lower is better)</text>
+  <text x="20" y="44" fill="#495057">Tesla T4, GPU clock, mean of steps 2..20, run 3. Mine is one launch over the flat buffer in both cases.</text>
+
+  <!-- grid: x = 250 + 130 * ms -->
+  <g stroke="#e9ecef">
+    <line x1="250" y1="58" x2="250" y2="250"/><line x1="315" y1="58" x2="315" y2="250"/><line x1="380" y1="58" x2="380" y2="250"/>
+    <line x1="445" y1="58" x2="445" y2="250"/><line x1="510" y1="58" x2="510" y2="250"/><line x1="575" y1="58" x2="575" y2="250"/>
+    <line x1="640" y1="58" x2="640" y2="250"/><line x1="705" y1="58" x2="705" y2="250"/>
+  </g>
+  <g font-size="11" fill="#868e96" text-anchor="middle">
+    <text x="250" y="266">0</text><text x="315" y="266">0.5</text><text x="380" y="266">1</text><text x="445" y="266">1.5</text>
+    <text x="510" y="266">2</text><text x="575" y="266">2.5</text><text x="640" y="266">3</text><text x="705" y="266">3.5 ms</text>
+  </g>
+  <line x1="452.3" y1="56" x2="452.3" y2="250" stroke="#2b8a3e" stroke-dasharray="4,3"/>
+  <text x="456" y="64" font-size="10" fill="#2b8a3e">T4 peak: 1.56 ms</text>
+
+  <!-- 2 tensors -->
+  <text x="20" y="104" font-weight="600" fill="#212529">2 tensors</text>
+  <g font-size="12">
+    <text x="240" y="87" text-anchor="end" font-weight="600" fill="#212529">my GradNorm</text>
+    <rect x="250" y="74" width="232.2" height="18" fill="#e8590c"/><text x="488" y="88" font-weight="600" fill="#212529">1.786</text>
+    <text x="240" y="111" text-anchor="end" fill="#212529">PyTorch per tensor</text>
+    <rect x="250" y="98" width="243.6" height="18" fill="#868e96"/><text x="499" y="112" fill="#212529">1.874</text>
+    <text x="240" y="135" text-anchor="end" fill="#212529">PyTorch foreach</text>
+    <rect x="250" y="122" width="249.7" height="18" fill="#adb5bd"/><text x="505" y="136" fill="#212529">1.921</text>
+  </g>
+
+  <!-- 148 tensors -->
+  <text x="20" y="200" font-weight="600" fill="#212529">148 tensors</text>
+  <text x="20" y="216" font-size="11" fill="#868e96">(the real model)</text>
+  <g font-size="12">
+    <text x="240" y="183" text-anchor="end" font-weight="600" fill="#212529">my GradNorm</text>
+    <rect x="250" y="170" width="232.6" height="18" fill="#e8590c"/><text x="488" y="184" font-weight="600" fill="#212529">1.789</text>
+    <text x="240" y="207" text-anchor="end" fill="#212529">PyTorch per tensor</text>
+    <rect x="250" y="194" width="421.7" height="18" fill="#868e96"/><text x="677" y="208" fill="#212529">3.244 (1.81x)</text>
+    <text x="240" y="231" text-anchor="end" fill="#212529">PyTorch foreach</text>
+    <rect x="250" y="218" width="289.4" height="18" fill="#adb5bd"/><text x="545" y="232" fill="#212529">2.226 (1.24x)</text>
+  </g>
+
+  <text x="20" y="292" font-size="11" fill="#868e96">Per tensor: what C++ clip_grad_norm_ does (a norm kernel per tensor). Foreach: what Python's clip_grad_norm_ does (_foreach_norm).</text>
+  <text x="20" y="308" font-size="11" fill="#868e96">From 2 to 148 tensors, mine takes 0.003 ms longer; PyTorch per tensor 1.37 ms longer (about 9.4 µs per extra tensor), foreach 0.31 ms</text>
+  <text x="20" y="324" font-size="11" fill="#868e96">(about 2.1 µs per extra tensor). Same values, same GPU, same run: the difference is the number of tensors.</text>
+</svg>
