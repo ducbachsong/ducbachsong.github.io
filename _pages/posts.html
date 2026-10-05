@@ -1,0 +1,21 @@
+---
+layout: archive
+title: "Posts"
+permalink: /posts/
+author_profile: true
+---
+
+{% include base_path %}
+
+<p>Notes on what I learn along the way, written down so I keep it: shorter and less formal than the
+<a href="{{ base_path }}/research/">research</a> entries, with no new measurements.</p>
+
+{% capture written_year %}'None'{% endcapture %}
+{% for post in site.posts %}
+  {% capture year %}{{ post.date | date: '%Y' }}{% endcapture %}
+  {% if year != written_year %}
+    <h2 id="{{ year | slugify }}" class="archive__subtitle">{{ year }}</h2>
+    {% capture written_year %}{{ year }}{% endcapture %}
+  {% endif %}
+  {% include archive-single.html %}
+{% endfor %}

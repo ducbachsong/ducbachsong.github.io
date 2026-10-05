@@ -1,0 +1,71 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 470" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#e03131"/>
+    </marker>
+  </defs>
+  <rect width="760" height="470" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">Where the numbers live on a Tesla T4, and how long a read takes from each place</text>
+  <text x="20" y="44" fill="#495057">Read latencies measured on a T4 by Jia et al. (2019), in clock cycles at 1,590 MHz.</text>
+
+  <!-- the GPU chip -->
+  <rect x="20" y="62" width="720" height="212" fill="#f8f9fa" stroke="#495057"/>
+  <text x="32" y="80" font-weight="600" fill="#212529">GPU chip</text>
+
+  <!-- SM 0 -->
+  <rect x="40" y="88" width="300" height="124" fill="#fff4e6" stroke="#495057"/>
+  <text x="52" y="106" font-weight="600" fill="#212529">SM 0</text>
+  <rect x="52" y="114" width="276" height="28" fill="#ffc078" stroke="#495057"/>
+  <text x="62" y="133" font-size="12" fill="#212529">registers: 65,536 (256 KB) · no extra cycles</text>
+  <rect x="52" y="146" width="276" height="28" fill="#ffd8a8" stroke="#495057"/>
+  <text x="62" y="165" font-size="12" fill="#212529">L1: 32 cycles · shared memory: 19 cycles</text>
+  <rect x="52" y="178" width="276" height="24" fill="#ffffff" stroke="#495057"/>
+  <text x="62" y="194" font-size="12" fill="#495057">4 warp schedulers · 64 float units</text>
+
+  <text x="430" y="154" text-anchor="middle" fill="#868e96">… SM 1 to SM 38 …</text>
+
+  <!-- SM 39 -->
+  <rect x="520" y="88" width="200" height="124" fill="#fff4e6" stroke="#495057"/>
+  <text x="532" y="106" font-weight="600" fill="#212529">SM 39</text>
+  <rect x="532" y="114" width="176" height="28" fill="#ffc078" stroke="#495057"/>
+  <text x="542" y="133" font-size="12" fill="#212529">registers</text>
+  <rect x="532" y="146" width="176" height="28" fill="#ffd8a8" stroke="#495057"/>
+  <text x="542" y="165" font-size="12" fill="#212529">L1 + shared</text>
+  <rect x="532" y="178" width="176" height="24" fill="#ffffff" stroke="#495057"/>
+  <text x="542" y="194" font-size="12" fill="#495057">schedulers, float units</text>
+
+  <!-- L2 -->
+  <rect x="40" y="226" width="680" height="34" fill="#e7f5ff" stroke="#495057"/>
+  <text x="380" y="248" text-anchor="middle" font-size="12" fill="#212529">L2 cache: 4 MB, shared by all 40 SMs · ≈188 cycles</text>
+
+  <!-- the road -->
+  <line x1="420" y1="278" x2="420" y2="318" stroke="#495057" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="500" y1="278" x2="500" y2="318" stroke="#495057" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="580" y1="278" x2="580" y2="318" stroke="#495057" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="600" y="303" font-size="12" fill="#495057">the road: 320 GB/s</text>
+
+  <!-- GPU memory -->
+  <rect x="20" y="322" width="720" height="112" fill="#f1f3f5" stroke="#495057"/>
+  <text x="32" y="340" font-weight="600" fill="#212529">GPU memory (GDDR6, 16 GB, separate chips on the card) · 296 cycles (616 on a TLB miss)</text>
+  <g font-size="11" text-anchor="middle" fill="#212529">
+    <rect x="32" y="350" width="150" height="34" fill="#ffc9c9" stroke="#e03131"/><text x="107" y="371">local memory</text>
+    <rect x="182" y="350" width="250" height="34" fill="#fff4e6" stroke="#495057"/><text x="307" y="371">wte: 155 MB</text>
+    <rect x="432" y="350" width="46" height="34" fill="#fff4e6" stroke="#495057"/><text x="455" y="371">wpe</text>
+    <rect x="478" y="350" width="90" height="34" fill="#fff4e6" stroke="#495057"/><text x="523" y="371">encoded</text>
+    <rect x="568" y="350" width="160" height="34" fill="#ffffff" stroke="#495057"/><text x="648" y="371">gradients, the rest …</text>
+  </g>
+  <text x="32" y="402" font-size="11" fill="#e03131">each thread's private piece:</text>
+  <text x="32" y="416" font-size="11" fill="#e03131">spills, run-time-indexed arrays</text>
+  <text x="190" y="402" font-size="11" fill="#495057">global memory: every thread can read and write it, and the CPU copies into it.</text>
+  <text x="190" y="416" font-size="11" fill="#495057">"Local" means private to one thread, not near: it is on the same chips as wte.</text>
+
+  <!-- the spill path -->
+  <path d="M 52 128 L 45 128 L 45 348" fill="none" stroke="#e03131" stroke-width="1.5" stroke-dasharray="5,3" marker-start="url(#arrow-red)" marker-end="url(#arrow-red)"/>
+  <text x="56" y="296" font-size="11" fill="#e03131">a spill: store down, load back up,</text>
+  <text x="56" y="310" font-size="11" fill="#e03131">cached in L2 on the way</text>
+
+  <text x="20" y="456" font-size="11" fill="#868e96">Every kernel: load (memory → register), compute (register → register), store (register → memory).</text>
+</svg>

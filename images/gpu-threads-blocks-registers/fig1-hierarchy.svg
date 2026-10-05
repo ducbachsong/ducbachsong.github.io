@@ -1,0 +1,204 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 540" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+  </defs>
+  <rect width="760" height="540" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">From the launch to the hardware: blocks go to SMs, an SM holds warps, a warp is 32 threads</text>
+  <text x="20" y="44" fill="#495057">A Tesla T4 has 40 SMs. Each takes one block of 1024 threads at a time; the 512 blocks run in about 13 waves.</text>
+  <text x="20" y="84" font-weight="600" fill="#212529">grid</text>
+  <text x="20" y="100" font-size="11" fill="#868e96">&lt;&lt;&lt;512, 1024&gt;&gt;&gt;</text>
+  <rect x="140" y="70" width="44" height="28" fill="#ffc078" stroke="#495057"/>
+  <text x="162" y="89" font-size="12" text-anchor="middle" fill="#212529">0</text>
+  <rect x="184" y="70" width="44" height="28" fill="#ffc078" stroke="#495057"/>
+  <text x="206" y="89" font-size="12" text-anchor="middle" fill="#212529">1</text>
+  <rect x="228" y="70" width="44" height="28" fill="#ffc078" stroke="#495057"/>
+  <text x="250" y="89" font-size="12" text-anchor="middle" fill="#212529">2</text>
+  <rect x="272" y="70" width="44" height="28" fill="#ffc078" stroke="#495057"/>
+  <text x="294" y="89" font-size="12" text-anchor="middle" fill="#212529">3</text>
+  <text x="334" y="89" text-anchor="middle" fill="#868e96">…</text>
+  <rect x="352" y="70" width="44" height="28" fill="#ffc078" stroke="#495057"/>
+  <text x="374" y="89" font-size="12" text-anchor="middle" fill="#212529">39</text>
+  <rect x="396" y="70" width="44" height="28" fill="#fff4e6" stroke="#495057"/>
+  <text x="418" y="89" font-size="12" text-anchor="middle" fill="#212529">40</text>
+  <rect x="440" y="70" width="44" height="28" fill="#fff4e6" stroke="#495057"/>
+  <text x="462" y="89" font-size="12" text-anchor="middle" fill="#212529">41</text>
+  <text x="502" y="89" text-anchor="middle" fill="#868e96">…</text>
+  <rect x="520" y="70" width="44" height="28" fill="#fff4e6" stroke="#495057"/>
+  <text x="542" y="89" font-size="12" text-anchor="middle" fill="#212529">480</text>
+  <text x="582" y="89" text-anchor="middle" fill="#868e96">…</text>
+  <rect x="600" y="70" width="44" height="28" fill="#fff4e6" stroke="#495057"/>
+  <text x="622" y="89" font-size="12" text-anchor="middle" fill="#212529">511</text>
+  <text x="140" y="118" font-size="11" fill="#d9480f">blocks 0–39: wave 1</text>
+  <text x="420" y="118" font-size="11" fill="#868e96">blocks 40–511: wait in the queue</text>
+  <text x="20" y="160" font-weight="600" fill="#212529">T4</text>
+  <text x="20" y="176" font-size="11" fill="#868e96">40 SMs</text>
+  <rect x="140" y="140" width="56" height="34" fill="#ffc078" stroke="#495057"/>
+  <text x="168" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 0</text>
+  <text x="168" y="167" font-size="10" text-anchor="middle" fill="#212529">block 0</text>
+  <rect x="200" y="140" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="228" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 1</text>
+  <text x="228" y="167" font-size="10" text-anchor="middle" fill="#212529">block 1</text>
+  <rect x="260" y="140" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="288" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 2</text>
+  <text x="288" y="167" font-size="10" text-anchor="middle" fill="#212529">block 2</text>
+  <rect x="320" y="140" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="348" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 3</text>
+  <text x="348" y="167" font-size="10" text-anchor="middle" fill="#212529">block 3</text>
+  <rect x="380" y="140" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="408" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 4</text>
+  <text x="408" y="167" font-size="10" text-anchor="middle" fill="#212529">block 4</text>
+  <rect x="440" y="140" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="468" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 5</text>
+  <text x="468" y="167" font-size="10" text-anchor="middle" fill="#212529">block 5</text>
+  <rect x="500" y="140" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="528" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 6</text>
+  <text x="528" y="167" font-size="10" text-anchor="middle" fill="#212529">block 6</text>
+  <rect x="560" y="140" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="588" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 7</text>
+  <text x="588" y="167" font-size="10" text-anchor="middle" fill="#212529">block 7</text>
+  <rect x="620" y="140" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="648" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 8</text>
+  <text x="648" y="167" font-size="10" text-anchor="middle" fill="#212529">block 8</text>
+  <rect x="680" y="140" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="708" y="154" font-size="10" text-anchor="middle" fill="#495057">SM 9</text>
+  <text x="708" y="167" font-size="10" text-anchor="middle" fill="#212529">block 9</text>
+  <rect x="140" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="168" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 10</text>
+  <text x="168" y="207" font-size="10" text-anchor="middle" fill="#212529">block 10</text>
+  <rect x="200" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="228" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 11</text>
+  <text x="228" y="207" font-size="10" text-anchor="middle" fill="#212529">block 11</text>
+  <rect x="260" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="288" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 12</text>
+  <text x="288" y="207" font-size="10" text-anchor="middle" fill="#212529">block 12</text>
+  <rect x="320" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="348" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 13</text>
+  <text x="348" y="207" font-size="10" text-anchor="middle" fill="#212529">block 13</text>
+  <rect x="380" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="408" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 14</text>
+  <text x="408" y="207" font-size="10" text-anchor="middle" fill="#212529">block 14</text>
+  <rect x="440" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="468" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 15</text>
+  <text x="468" y="207" font-size="10" text-anchor="middle" fill="#212529">block 15</text>
+  <rect x="500" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="528" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 16</text>
+  <text x="528" y="207" font-size="10" text-anchor="middle" fill="#212529">block 16</text>
+  <rect x="560" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="588" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 17</text>
+  <text x="588" y="207" font-size="10" text-anchor="middle" fill="#212529">block 17</text>
+  <rect x="620" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="648" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 18</text>
+  <text x="648" y="207" font-size="10" text-anchor="middle" fill="#212529">block 18</text>
+  <rect x="680" y="180" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="708" y="194" font-size="10" text-anchor="middle" fill="#495057">SM 19</text>
+  <text x="708" y="207" font-size="10" text-anchor="middle" fill="#212529">block 19</text>
+  <rect x="140" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="168" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 20</text>
+  <text x="168" y="247" font-size="10" text-anchor="middle" fill="#212529">block 20</text>
+  <rect x="200" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="228" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 21</text>
+  <text x="228" y="247" font-size="10" text-anchor="middle" fill="#212529">block 21</text>
+  <rect x="260" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="288" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 22</text>
+  <text x="288" y="247" font-size="10" text-anchor="middle" fill="#212529">block 22</text>
+  <rect x="320" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="348" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 23</text>
+  <text x="348" y="247" font-size="10" text-anchor="middle" fill="#212529">block 23</text>
+  <rect x="380" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="408" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 24</text>
+  <text x="408" y="247" font-size="10" text-anchor="middle" fill="#212529">block 24</text>
+  <rect x="440" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="468" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 25</text>
+  <text x="468" y="247" font-size="10" text-anchor="middle" fill="#212529">block 25</text>
+  <rect x="500" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="528" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 26</text>
+  <text x="528" y="247" font-size="10" text-anchor="middle" fill="#212529">block 26</text>
+  <rect x="560" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="588" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 27</text>
+  <text x="588" y="247" font-size="10" text-anchor="middle" fill="#212529">block 27</text>
+  <rect x="620" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="648" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 28</text>
+  <text x="648" y="247" font-size="10" text-anchor="middle" fill="#212529">block 28</text>
+  <rect x="680" y="220" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="708" y="234" font-size="10" text-anchor="middle" fill="#495057">SM 29</text>
+  <text x="708" y="247" font-size="10" text-anchor="middle" fill="#212529">block 29</text>
+  <rect x="140" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="168" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 30</text>
+  <text x="168" y="287" font-size="10" text-anchor="middle" fill="#212529">block 30</text>
+  <rect x="200" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="228" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 31</text>
+  <text x="228" y="287" font-size="10" text-anchor="middle" fill="#212529">block 31</text>
+  <rect x="260" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="288" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 32</text>
+  <text x="288" y="287" font-size="10" text-anchor="middle" fill="#212529">block 32</text>
+  <rect x="320" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="348" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 33</text>
+  <text x="348" y="287" font-size="10" text-anchor="middle" fill="#212529">block 33</text>
+  <rect x="380" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="408" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 34</text>
+  <text x="408" y="287" font-size="10" text-anchor="middle" fill="#212529">block 34</text>
+  <rect x="440" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="468" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 35</text>
+  <text x="468" y="287" font-size="10" text-anchor="middle" fill="#212529">block 35</text>
+  <rect x="500" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="528" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 36</text>
+  <text x="528" y="287" font-size="10" text-anchor="middle" fill="#212529">block 36</text>
+  <rect x="560" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="588" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 37</text>
+  <text x="588" y="287" font-size="10" text-anchor="middle" fill="#212529">block 37</text>
+  <rect x="620" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="648" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 38</text>
+  <text x="648" y="287" font-size="10" text-anchor="middle" fill="#212529">block 38</text>
+  <rect x="680" y="260" width="56" height="34" fill="#ffd8a8" stroke="#495057"/>
+  <text x="708" y="274" font-size="10" text-anchor="middle" fill="#495057">SM 39</text>
+  <text x="708" y="287" font-size="10" text-anchor="middle" fill="#212529">block 39</text>
+  <text x="140" y="316" font-size="11" fill="#495057">when SM k's block finishes, the SM takes the next block from the queue: 512 / 40 = 12.8 waves;</text>
+  <text x="140" y="330" font-size="11" fill="#495057">in the last wave, blocks 480–511 keep 32 SMs busy and 8 SMs have nothing to do</text>
+  <text x="20" y="392" font-weight="600" fill="#212529">SM 0</text>
+  <text x="20" y="408" font-size="11" fill="#868e96">32 warp slots</text>
+  <defs><pattern id="slots" width="17.5" height="10" patternUnits="userSpaceOnUse" x="140"><line x1="0" y1="0" x2="0" y2="10" stroke="#495057" stroke-width="0.6"/></pattern></defs>
+  <rect x="140" y="378" width="560" height="28" fill="#ffd8a8" stroke="none"/>
+  <rect x="140" y="378" width="560" height="28" fill="url(#slots)" stroke="none"/>
+  <rect x="140" y="378" width="17.5" height="28" fill="#ffa94d" stroke="none"/>
+  <rect x="140" y="378" width="560" height="28" fill="none" stroke="#495057"/>
+  <text x="420" y="422" font-size="11" text-anchor="middle" fill="#495057">block 0's 32 warps fill all 32 slots (1024 threads), with its registers and shared memory</text>
+  <text x="420" y="436" font-size="11" text-anchor="middle" fill="#868e96">the SM also has 65,536 registers, 64 KB of shared memory, 4 warp schedulers and 64 float units</text>
+  <text x="20" y="478" font-weight="600" fill="#212529">warp 0</text>
+  <text x="20" y="494" font-size="11" fill="#868e96">32 lanes</text>
+  <rect x="140" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="157.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="175" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="192.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="210" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="227.5" y="464" width="17.5" height="24" fill="#ffa94d" stroke="#495057"/>
+  <rect x="245" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="262.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="280" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="297.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="315" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="332.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="350" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="367.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="385" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="402.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="420" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="437.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="455" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="472.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="490" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="507.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="525" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="542.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="560" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="577.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="595" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="612.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="630" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="647.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="665" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <rect x="682.5" y="464" width="17.5" height="24" fill="#ffc078" stroke="#495057"/>
+  <text x="236.25" y="502" font-size="10" text-anchor="middle" fill="#495057">thread 5</text>
+  <text x="420" y="520" font-size="11" text-anchor="middle" fill="#495057">the 32 threads of a warp run each instruction together; each has its own registers</text>
+</svg>

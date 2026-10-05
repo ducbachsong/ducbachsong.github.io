@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+  </defs>
+  <rect width="760" height="400" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">One T4 SM has 32 warp slots: how different block sizes fill them</text>
+  <text x="20" y="44" fill="#495057">A block always sits on one SM, whole. The SM takes blocks until it runs out of slots (or reaches 16 blocks).</text>
+  <defs><pattern id="slots" width="13" height="10" patternUnits="userSpaceOnUse" x="150"><line x1="0" y1="0" x2="0" y2="10" stroke="#495057" stroke-width="0.6"/></pattern></defs>
+  <text x="20" y="91" font-weight="600" fill="#212529">1024 threads</text>
+  <rect x="150" y="74" width="416" height="26" fill="#ffc078" stroke="none"/>
+  <text x="358" y="91" font-size="11" text-anchor="middle" fill="#212529">1 block, 32 warps</text>
+  <rect x="150" y="74" width="416" height="26" fill="url(#slots)" stroke="none"/>
+  <rect x="150" y="74" width="416" height="26" fill="none" stroke="#495057"/>
+  <text x="576" y="91" font-size="11" fill="#495057">32 / 32: full</text>
+  <text x="20" y="131" font-weight="600" fill="#212529">992 threads</text>
+  <rect x="150" y="114" width="403" height="26" fill="#ffc078" stroke="none"/>
+  <text x="351.5" y="131" font-size="11" text-anchor="middle" fill="#212529">1 block, 31 warps</text>
+  <rect x="553" y="114" width="13" height="26" fill="#f1f3f5" stroke="none"/>
+  <rect x="150" y="114" width="416" height="26" fill="url(#slots)" stroke="none"/>
+  <rect x="150" y="114" width="416" height="26" fill="none" stroke="#495057"/>
+  <text x="576" y="131" font-size="11" fill="#495057">31 / 32: 1 slot idle</text>
+  <text x="20" y="171" font-weight="600" fill="#212529">512 threads</text>
+  <rect x="150" y="154" width="208" height="26" fill="#ffc078" stroke="none"/>
+  <text x="254" y="171" font-size="11" text-anchor="middle" fill="#212529">block A</text>
+  <rect x="358" y="154" width="208" height="26" fill="#ffd8a8" stroke="none"/>
+  <text x="462" y="171" font-size="11" text-anchor="middle" fill="#212529">block B</text>
+  <rect x="150" y="154" width="416" height="26" fill="url(#slots)" stroke="none"/>
+  <rect x="150" y="154" width="416" height="26" fill="none" stroke="#495057"/>
+  <text x="576" y="171" font-size="11" fill="#495057">32 / 32: full</text>
+  <text x="20" y="211" font-weight="600" fill="#212529">384 threads</text>
+  <rect x="150" y="194" width="156" height="26" fill="#ffc078" stroke="none"/>
+  <text x="228" y="211" font-size="11" text-anchor="middle" fill="#212529">block A</text>
+  <rect x="306" y="194" width="156" height="26" fill="#ffd8a8" stroke="none"/>
+  <text x="384" y="211" font-size="11" text-anchor="middle" fill="#212529">block B</text>
+  <rect x="462" y="194" width="104" height="26" fill="#f1f3f5" stroke="none"/>
+  <text x="514" y="211" font-size="11" text-anchor="middle" fill="#868e96">empty</text>
+  <rect x="150" y="194" width="416" height="26" fill="url(#slots)" stroke="none"/>
+  <rect x="150" y="194" width="416" height="26" fill="none" stroke="#495057"/>
+  <text x="576" y="211" font-size="11" fill="#495057">24 / 32: a 3rd won't fit</text>
+  <text x="20" y="251" font-weight="600" fill="#212529">256 threads</text>
+  <rect x="150" y="234" width="104" height="26" fill="#ffc078" stroke="none"/>
+  <text x="202" y="251" font-size="11" text-anchor="middle" fill="#212529">A</text>
+  <rect x="254" y="234" width="104" height="26" fill="#ffd8a8" stroke="none"/>
+  <text x="306" y="251" font-size="11" text-anchor="middle" fill="#212529">B</text>
+  <rect x="358" y="234" width="104" height="26" fill="#ffc078" stroke="none"/>
+  <text x="410" y="251" font-size="11" text-anchor="middle" fill="#212529">C</text>
+  <rect x="462" y="234" width="104" height="26" fill="#ffd8a8" stroke="none"/>
+  <text x="514" y="251" font-size="11" text-anchor="middle" fill="#212529">D</text>
+  <rect x="150" y="234" width="416" height="26" fill="url(#slots)" stroke="none"/>
+  <rect x="150" y="234" width="416" height="26" fill="none" stroke="#495057"/>
+  <text x="576" y="251" font-size="11" fill="#495057">32 / 32: full</text>
+  <text x="20" y="291" font-weight="600" fill="#212529">32 threads</text>
+  <rect x="150" y="274" width="13" height="26" fill="#ffc078" stroke="none"/>
+  <rect x="163" y="274" width="13" height="26" fill="#ffd8a8" stroke="none"/>
+  <rect x="176" y="274" width="13" height="26" fill="#ffc078" stroke="none"/>
+  <rect x="189" y="274" width="13" height="26" fill="#ffd8a8" stroke="none"/>
+  <rect x="202" y="274" width="13" height="26" fill="#ffc078" stroke="none"/>
+  <rect x="215" y="274" width="13" height="26" fill="#ffd8a8" stroke="none"/>
+  <rect x="228" y="274" width="13" height="26" fill="#ffc078" stroke="none"/>
+  <rect x="241" y="274" width="13" height="26" fill="#ffd8a8" stroke="none"/>
+  <rect x="254" y="274" width="13" height="26" fill="#ffc078" stroke="none"/>
+  <rect x="267" y="274" width="13" height="26" fill="#ffd8a8" stroke="none"/>
+  <rect x="280" y="274" width="13" height="26" fill="#ffc078" stroke="none"/>
+  <rect x="293" y="274" width="13" height="26" fill="#ffd8a8" stroke="none"/>
+  <rect x="306" y="274" width="13" height="26" fill="#ffc078" stroke="none"/>
+  <rect x="319" y="274" width="13" height="26" fill="#ffd8a8" stroke="none"/>
+  <rect x="332" y="274" width="13" height="26" fill="#ffc078" stroke="none"/>
+  <rect x="345" y="274" width="13" height="26" fill="#ffd8a8" stroke="none"/>
+  <rect x="358" y="274" width="208" height="26" fill="#f1f3f5" stroke="none"/>
+  <text x="462" y="291" font-size="11" text-anchor="middle" fill="#868e96">empty</text>
+  <rect x="150" y="274" width="416" height="26" fill="url(#slots)" stroke="none"/>
+  <rect x="150" y="274" width="416" height="26" fill="none" stroke="#495057"/>
+  <text x="576" y="291" font-size="11" fill="#495057">16 / 32: at most 16 blocks</text>
+  <text x="20" y="331" font-weight="600" fill="#212529">1056 threads</text>
+  <rect x="150" y="314" width="416" height="26" fill="#ffc9c9" stroke="#e03131"/>
+  <text x="358" y="331" font-size="11" text-anchor="middle" fill="#e03131">33 warps: more than 1024 threads in one block, so the launch fails</text>
+  <text x="576" y="331" font-size="11" fill="#e03131">invalid configuration</text>
+  <text x="20" y="366" font-size="11" fill="#495057">Rules: threads per block a multiple of 32 (whole warps) and at most 1024;</text>
+  <text x="20" y="382" font-size="11" fill="#495057">best a size that divides 1024 (128, 256, 512, 1024), so the blocks fill the SM exactly.</text>
+</svg>
