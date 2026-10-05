@@ -2,7 +2,7 @@
 title: "How a CUDA kernel uses threads, warps, blocks and registers"
 date: 2026-10-05
 permalink: /posts/gpu-threads-blocks-registers/
-excerpt: "How a CUDA launch becomes threads, warps and blocks on the GPU's SMs, how many of each there can be, what registers are and who decides how many a thread gets, what happens when they run out, and how to use all of it well. Explained on one small kernel, with the numbers of a Tesla T4, and based on NVIDIA's documentation and published measurements."
+excerpt: "How a CUDA launch becomes threads, warps and blocks on the GPU's SMs, how several blocks share one SM, how to choose between many small blocks and a few big ones, what registers are and who decides how many a thread gets, how to spend them to cut the time spent waiting for memory, and what happens when they run out. Explained on one small kernel, with the numbers of a Tesla T4, and based on NVIDIA's documentation and published measurements."
 tags:
   - cuda
   - gpu
@@ -17,9 +17,9 @@ new is measured here.
 
 **Sources.** Each statement is backed by NVIDIA's documentation (the CUDA C++ Programming Guide [3],
 the Best Practices Guide [4], the Runtime API [5]) or by published work: measurements of the T4 by
-Jia et al. [6], and Volkov's studies of latency hiding and occupancy [7, 8, 9]. Quotes are marked
-as quotes. Numbers that come from arithmetic on documented rules say so, and the one estimate is
-labelled as an estimate.
+Jia et al. [6], and Volkov's studies of latency hiding and occupancy [7, 8, 9]. Quotes are marked as
+quotes. Numbers that come from arithmetic on documented rules say so, and estimates are labelled as
+estimates.
 
 * TOC
 {:toc}
@@ -28,11 +28,12 @@ labelled as an estimate.
 
 All the explanations use one kernel: the forward pass of GPT-2's encoder, from my C/CUDA trainer
 [1]. It is small and its threads never work together, which keeps the hardware in view. For every
-token it adds two rows of 768 numbers, 4 numbers (one `float4`) per step:
+token it adds two rows of 768 numbers, 4 numbers (one `float4`) per step. The post launches it as
+2,048 blocks of 256 threads, so that several blocks share each SM:
 
 ```cpp
-#define ENCODER_BLOCKS 512          // blocks in every launch
-#define ENCODER_THREADS 1024        // threads per block: 512 x 1024 = 524,288 threads in all
+#define ENCODER_BLOCKS 2048         // blocks in every launch
+#define ENCODER_THREADS 256         // threads per block: 2048 x 256 = 524,288 threads in all
 
 __global__ void encoder_forward_kernel(float4* encoded, const int* token_ids, const float4* wte,
                                        const float4* wpe, size_t B, size_t T, size_t embed_dim) {
@@ -75,23 +76,23 @@ write.
 
 ### 2.1 Thread, warp, block, grid, SM
 
-A launch `<<<512, 1024>>>` asks for **512 blocks of 1,024 threads**. Some of the words name what the
+A launch `<<<2048, 256>>>` asks for **2,048 blocks of 256 threads**. Some of the words name what the
 *program* asks for (grid, block, thread), one names what the *hardware* has (the SM), and the warp
 sits in between:
 
 | piece | what it is | decided by | in the example |
 |---|---|---|---|
 | **thread** | one copy of the kernel function, with its own registers | the launch | 524,288 |
-| **warp** | 32 threads of one block that the SM schedules together | the hardware | 32 per block |
-| **block** | a group of threads that can share memory and wait for each other | the launch: 1 to 1,024 threads | 512 blocks of 1,024 |
-| **grid** | all the blocks of one launch | the launch | 512 blocks |
+| **warp** | 32 threads of one block that the SM schedules together | the hardware | 8 per block |
+| **block** | a group of threads that can share memory and wait for each other | the launch: 1 to 1,024 threads | 2,048 blocks of 256 |
+| **grid** | all the blocks of one launch | the launch | 2,048 blocks |
 | **SM** (streaming multiprocessor) | a processor on the chip, with its own registers, caches, shared memory and schedulers | the hardware | 40 on a T4 |
 
 *Table 2. The five pieces [3, Thread Hierarchy; Hardware Implementation].*
 
 ![From the launch to the hardware](/images/gpu-threads-blocks-registers/fig1-hierarchy.svg)
-*Figure 1. The 512 blocks of the launch on a T4's 40 SMs. One block of 1,024 threads fills one SM's
-32 warp slots; a warp is 32 threads.*
+*Figure 1. The 2,048 blocks of the launch on a T4's 40 SMs. Each SM holds 4 blocks of 256 threads, 8
+warps each, which fill its 32 warp slots; a warp is 32 threads.*
 
 The Programming Guide describes the mapping in one paragraph: "When a CUDA program on the host CPU
 invokes a kernel grid, the blocks of the grid are enumerated and distributed to multiprocessors with
@@ -101,22 +102,23 @@ blocks terminate, new blocks are launched on the vacated multiprocessors" [3, Ha
 Implementation].
 
 A thread learns who it is from four numbers the GPU fills in before it starts: `threadIdx.x`
-(0–1,023, its number in the block), `blockIdx.x` (0–511), `blockDim.x` (1,024) and `gridDim.x`
-(512). The example turns them into one number, 0 to 524,287:
+(0–255, its number in the block), `blockIdx.x` (0–2,047), `blockDim.x` (256) and `gridDim.x`
+(2,048). The example turns them into one number, 0 to 524,287:
 
 ```cpp
-size_t thread_number = (size_t)blockIdx.x * blockDim.x + threadIdx.x;   // block 3, thread 5 → 3,077
+size_t thread_number = (size_t)blockIdx.x * blockDim.x + threadIdx.x;   // block 3, thread 5 → 3 × 256 + 5 = 773
 ```
 
 Which values a thread reads and writes is arithmetic on this number, written by the programmer.
 
 ### 2.2 The warp
 
-A warp is **32 threads**; an SM holds **up to 32 warps** on a T4 [3, Table 21]. A block of 1,024
-threads is therefore 32 warps, all on one SM. The guide: "The multiprocessor creates, manages,
-schedules, and executes threads in groups of 32 parallel threads called warps", and "each warp
-contains threads of consecutive, increasing thread IDs with the first warp containing thread 0"
-[3, SIMT Architecture]. Threads 0–31 of a block are warp 0, 32–63 warp 1, and so on.
+A warp is **32 threads**; an SM holds **up to 32 warps** on a T4 [3, Table 21]. A block of 256
+threads is therefore 8 warps, and four such blocks fill an SM. The guide: "The multiprocessor
+creates, manages, schedules, and executes threads in groups of 32 parallel threads called warps",
+and "each warp contains threads of consecutive, increasing thread IDs with the first warp containing
+thread 0" [3, SIMT Architecture]. Threads 0–31 of a block are its warp 0, 32–63 its warp 1, …,
+224–255 its warp 7.
 
 In the example, the 32 threads of a warp run each load of `wte` together, each for its own `group`.
 This is why the Best Practices Guide asks for whole warps: "Threads per block should be a multiple
@@ -140,7 +142,7 @@ Blocks, on the other hand, must not depend on each other: "Thread blocks are req
 independently: It must be possible to execute them in any order, in parallel or in series" [3, Thread
 Hierarchy]. Which SM runs which block, and when, is the GPU's choice.
 
-### 2.4 An SM can hold several blocks
+### 2.4 Several blocks on one SM
 
 An SM is a pool of resources, and each block takes a part of it when it arrives: "The number of
 blocks and warps that can reside and be processed together on the multiprocessor for a given kernel
@@ -148,25 +150,28 @@ depends on the amount of registers and shared memory used by the kernel and the 
 and shared memory available on the multiprocessor. There are also a maximum number of resident
 blocks and a maximum number of resident warps per multiprocessor" [3, Hardware Multithreading].
 
-| T4 SM resource | total [3, Table 21] | one block of 512 threads, 32 registers each |
-|---|---:|---:|
-| warp slots | 32 | 16 |
-| registers | 65,536 | 512 × 32 = 16,384 |
-| shared memory | 64 KB | what the kernel declares |
-| block slots | 16 | 1 |
+For the example's blocks of 256 threads, at 32 registers each (Section 5.5), every resource gives a
+limit, and the smallest one decides:
 
-*Table 3. Two such blocks fit, since every row fits twice. The first resource to run out decides how
-many blocks an SM takes.*
+| T4 SM resource | total [3, Table 21] | one block of 256 threads takes | blocks it allows |
+|---|---:|---:|---:|
+| warp slots | 32 | 8 | **4** |
+| registers | 65,536 | 256 × 32 = 8,192 | 8 |
+| shared memory | 64 KB | none | no limit |
+| block slots | 16 | 1 | 16 |
 
-Each thread keeps its own registers and each block its own shared memory, and `__syncthreads()`
-waits only for the threads of its own block. Switching between warps is free: "The execution context
-(program counters, registers, and so on) for each warp processed by a multiprocessor is maintained
-on-chip during the entire lifetime of the warp. Therefore, switching from one execution context to
-another has no cost" [3, Hardware Multithreading]. On compute capability 7.x, "an SM statically
-distributes its warps among its schedulers. Then, at every instruction issue time, each scheduler
-issues one instruction for one of its assigned warps that is ready to execute, if any"
-[3, Compute Capability 7.x]. Jia et al. found the rule on the T4: warp *w* goes to scheduler *w* mod 4
-[6, Section 2.2].
+*Table 3. Four blocks of the example fit on one SM; warp slots run out first (arithmetic).*
+
+The four blocks stay separate: each thread keeps its own registers, each block its own shared
+memory, and `__syncthreads()` waits only for the threads of its own block. The SM switches between
+their warps for free: "The execution context (program counters, registers, and so on) for each warp
+processed by a multiprocessor is maintained on-chip during the entire lifetime of the warp.
+Therefore, switching from one execution context to another has no cost" [3, Hardware
+Multithreading]. On compute capability 7.x, "an SM statically distributes its warps among its
+schedulers. Then, at every instruction issue time, each scheduler issues one instruction for one of
+its assigned warps that is ready to execute, if any" [3, Compute Capability 7.x]. Jia et al. found
+the rule on the T4: warp *w* goes to scheduler *w* mod 4 [6, Section 2.2]. Warps of all four blocks
+are mixed on the same schedulers; a block cannot tell that others share its SM.
 
 ## 3. From a launch to running threads
 
@@ -175,17 +180,18 @@ issues one instruction for one of its assigned warps that is ready to execute, i
 A launch is a list of work. The GPU places as many blocks as fit, and as they end, "new blocks are
 launched on the vacated multiprocessors" [3, Hardware Implementation]:
 
-| GPU | SMs | threads per SM | threads resident at the same moment |
-|---|---:|---:|---:|
-| Tesla T4 (7.5) | 40 [6] | 1,024 [3] | 40,960 |
-| A100 (8.0) | 108 [10] | 2,048 [3] | 221,184 |
+| GPU | SMs | threads per SM | blocks of 256 per SM | blocks resident at once | threads resident at once |
+|---|---:|---:|---:|---:|---:|
+| Tesla T4 (7.5) | 40 [6] | 1,024 [3] | 4 | 160 | 40,960 |
+| A100 (8.0) | 108 [10] | 2,048 [3] | 8 | 864 | 221,184 |
 
-*Table 4. SMs × threads per SM. Of the example's 524,288 threads, about 41 thousand are on a T4 at
-any moment.*
+*Table 4. Arithmetic on the limits. Of the example's 524,288 threads, about 41 thousand are on a T4
+at any moment.*
 
-On a T4 a block of 1,024 threads fills an SM, so 40 blocks run at once and the 512 blocks go through
-in 512 / 40 = 12.8 **waves** (arithmetic). In the last wave, blocks 480–511 keep 32 SMs busy and 8
-have nothing to do.
+On a T4, 160 blocks run at once, and the 2,048 blocks go through in 2,048 / 160 = 12.8 **waves**
+(arithmetic). In the last wave, blocks 1,920–2,047 fill 32 SMs and 8 SMs have nothing to do. A wave is
+a simplification, though: blocks do not start and end together, so an SM takes a new block whenever
+one of its four ends.
 
 ### 3.2 Sizing a launch: one thread per value, or a fixed grid and a loop
 
@@ -215,7 +221,7 @@ some are skipped. Reading it from `gridDim.x * blockDim.x` keeps it right if the
 
 | | A: one thread per value | B: fixed grid + loop |
 |---|---|---|
-| blocks | grows with the work | fixed, e.g. 512 |
+| blocks | grows with the work | fixed: 2,048 |
 | each thread does | 1 value | as many rounds as needed |
 | the example (786,432 float4s) | 3,072 blocks of 256 | 1.5 rounds: threads 0–262,143 do 2, the rest 1 |
 
@@ -242,33 +248,35 @@ The Best Practices Guide: "The number of blocks in a grid should be larger than 
 multiprocessors so that all multiprocessors have at least one block to execute. Furthermore, there
 should be multiple active blocks per multiprocessor so that blocks that aren't waiting for a
 `__syncthreads()` can keep the hardware busy. [...] To scale to future devices, the number of blocks
-per kernel launch should be in the thousands" [4, 11.3].
+per kernel launch should be in the thousands" [4, 11.3]. The example's 2,048 blocks of 256 follow
+this; 512 blocks of 1,024 would not.
 
-When threads add their results together, the block count can also be part of the design: in my
-gradient norm kernel [2], each block leaves one partial sum and the last block reads all 512 in one
-go. When threads work alone, as in the example, any count gives the right answer, and the last wave
+When threads work alone, as in the example, any count gives the right answer, and the last wave
 matters:
 
-| blocks on a T4 (40 SMs, 1 block of 1,024 each) | waves | last wave |
+| blocks of 256 on a T4 (160 at once) | waves | last wave |
 |---:|---:|---|
-| 20 | 0.5 | 20 of 40 SMs busy: half the GPU idle the whole time |
-| 40 | 1 | full |
-| 512 | 12.8 | 32 of 40 busy |
-| 520 | 13 | full |
+| 80 | 0.5 | 20 of 40 SMs busy: half the GPU idle the whole time |
+| 160 | 1 | full |
+| 2,048 | 12.8 | 32 of 40 SMs busy |
+| 2,080 | 13 | full |
 
 *Table 7. Arithmetic on the T4's 40 SMs. A fixed count fits one GPU better than another: the same
-512 on an A100 (108 SMs × 2 blocks of 1,024) is 2.4 waves.*
+2,048 on an A100 (864 at once) is 2.4 waves.*
 
-The grid size can also be taken from the GPU while the program runs: `cudaGetDeviceProperties` gives
-`multiProcessorCount`, and `cudaOccupancyMaxActiveBlocksPerMultiprocessor` gives how many blocks of a
-kernel fit on one SM [4, 11.1.1].
+When the threads of a block add their results together, the count can also be part of the design:
+in my gradient norm kernel [2], each block leaves one partial sum, and the last block reads all of
+them in one go. The grid size can also be taken from the GPU while the program runs:
+`cudaGetDeviceProperties` gives `multiProcessorCount`, and
+`cudaOccupancyMaxActiveBlocksPerMultiprocessor` gives how many blocks of a kernel fit on one SM
+[4, 11.1.1].
 
 ## 4. Threads per block
 
 ### 4.1 How block sizes fill an SM
 
-An SM's 32 warp slots are filled by whole blocks. The block size decides how many blocks fit, and how
-many slots are left over:
+An SM's 32 warp slots are filled by whole blocks. The block size decides how many blocks fit, and
+how many slots are left over:
 
 ![How block sizes fill an SM](/images/gpu-threads-blocks-registers/fig3-block-sizes.svg)
 *Figure 3. One T4 SM's 32 warp slots with different block sizes.*
@@ -280,7 +288,7 @@ many slots are left over:
 | **1,056** | 33 | — | — | **the launch fails** with `cudaErrorInvalidConfiguration` |
 | 512 | 16 | 2 | 32 / 32 | full |
 | 384 | 12 | 2 | 24 / 32 | a third block would need 1,152 threads: 25% empty |
-| 256 | 8 | 4 | 32 / 32 | full |
+| 256 | 8 | 4 | 32 / 32 | full (the example) |
 | 32 | 1 | 16 | 16 / 32 | the 16-block limit stops it: half empty |
 
 *Table 8. Arithmetic on the limits of Table 1. The error is documented as: "a kernel launch is
@@ -294,32 +302,63 @@ multiprocessor", and "Between 128 and 256 threads per block is a good initial ra
 experimentation with different block sizes" [4, 11.3]. Sizes that divide 1,024 (128, 256, 512,
 1,024) also fill a T4 SM exactly.
 
-### 4.2 Threads that work alone, and threads that work together
+### 4.2 Many small blocks or a few big ones, at the same number of threads
 
-When the threads of a block **add their results together**, as in a norm, a LayerNorm or a softmax,
-the adding inside a block happens in registers and shared memory, and only one result per block is
-left for the slow part. Bigger blocks leave fewer results: in my gradient norm, 1,024 threads per
-block leave 512 block sums where 256 would leave 2,048 [2].
+The same 524,288 threads can be launched as a few big blocks or many small ones. With the example's
+32 registers per thread, the T4 sees:
 
-When each thread **works alone**, as in the example, the block size does not change the answer at
-all, only the speed, which is decided by the points below and by measuring.
+| threads per block | blocks in the launch | blocks per SM | warps per SM | blocks at once | waves | registers per thread that still let one block launch | threads in one `__syncthreads()` |
+|---:|---:|---:|---:|---:|---:|---:|---:|
+| 1,024 | 512 | 1 | 32 | 40 | 12.8 | 64 | 1,024 |
+| 512 | 1,024 | 2 | 32 | 80 | 12.8 | 128 | 512 |
+| **256** | **2,048** | **4** | **32** | **160** | **12.8** | **255** | **256** |
+| 128 | 4,096 | 8 | 32 | 320 | 12.8 | 255 | 128 |
+| 64 | 8,192 | 16 | 32 | 640 | 12.8 | 255 | 64 |
+| 32 | 16,384 | 16 (block limit) | 16 | 640 | 25.6 | 255 | 32 |
 
-### 4.3 Small and big blocks on a full SM
+*Table 9. The same 524,288 threads on a T4 (arithmetic on Table 1). Down to 64 threads, every choice
+fills the SMs and needs the same number of waves; at 32, the 16-block limit halves the warps.*
 
-1 × 1,024, 2 × 512 and 4 × 256 all fill a T4 SM's 32 slots. The Best Practices Guide still prefers
-smaller blocks when latency matters: "Use several smaller thread blocks rather than one large thread
-block per multiprocessor if latency affects performance. This is particularly beneficial to kernels
-that frequently call `__syncthreads()`" [4, 11.3]. It also warns that "a larger block size does not
-imply a higher occupancy" [4, 11.3].
+When the SM is equally full, what differs is how the work is cut, and each side has something going
+for it.
 
-| | 1 block × 1,024 | 4 blocks × 256 |
-|---|---|---|
-| threads that can share results through shared memory | 1,024 | 256 |
-| `__syncthreads()` waits for | 32 warps | 8 warps |
-| when a block ends | the SM is empty until the next block arrives | 3 blocks keep running while one is replaced |
-| registers each thread may use (Section 5.6) | at most 64 | up to 255 |
+**Smaller blocks**
 
-*Table 9. The same full SM, two ways.*
+- *The SM refills in smaller steps.* A block's slots are freed only when its last warp ends. With 1
+  block of 1,024, one slow warp holds the whole SM; with 4 blocks of 256, the other three blocks keep
+  running, and a new block can move into the freed quarter. The Best Practices Guide: "Use several
+  smaller thread blocks rather than one large thread block per multiprocessor if latency affects
+  performance. This is particularly beneficial to kernels that frequently call `__syncthreads()`"
+  [4, 11.3], and "there should be multiple active blocks per multiprocessor so that blocks that aren't
+  waiting for a `__syncthreads()` can keep the hardware busy" [4, 11.3].
+- *A barrier stops fewer warps.* `__syncthreads()` makes the block's warps wait for its slowest; with
+  256 threads that is 8 warps out of the SM's 32, while the other 24 can go on.
+- *Register needs degrade gracefully.* A kernel that needs 72 registers per thread cannot launch with
+  blocks of 1,024 at all (72 × 1,024 = 73,728 > 65,536), but runs with blocks of 256, three per SM
+  (Section 5.7). The guide's own example shows the block size alone changing occupancy at the same
+  register count: on compute capability 7.0, "a kernel with 128-thread blocks using 37 registers per
+  thread results in an occupancy of 75% with 12 active 128-thread blocks per multi-processor, whereas
+  a kernel with 320-thread blocks using the same 37 registers per thread results in an occupancy of
+  63% because only four 320-thread blocks can reside on a multiprocessor" [4, 11.1.1].
+
+**Bigger blocks**
+
+- *More threads can work together.* Only threads of one block share shared memory and a barrier. When
+  threads combine results, as in a norm, LayerNorm or softmax, a bigger block does more of the
+  combining in fast memory and leaves fewer partial results: in my gradient norm, 1,024 threads per
+  block leave 512 block sums where 256 would leave 2,048 [2].
+- *Work done once per block is shared by more threads*, for example loading a tile of data into
+  shared memory that every thread of the block then reads.
+
+**Too small**
+
+- Below 64 threads per block the per-SM block limit starts to bite: 16 blocks of 32 threads fill only
+  half a T4 SM (Table 9). Hence the guide's minimum of 64 [4, 11.3].
+
+For a kernel whose threads work alone, like the example, the guide's starting range of 128–256 [4,
+11.3] is the reasonable default; for one whose threads combine results, the block size follows the
+combining. In both cases the answer is final only after timing, since the result of the kernel does
+not depend on the block size.
 
 ## 5. Registers
 
@@ -355,12 +394,13 @@ register file of 16,384, 32-bit elements" [6, Section 3.5.1]. They are handed ou
 threads of a warp "have their own instruction address counter and register state" [3, SIMT
 Architecture], and "separate registers are allocated to all active threads", so "no swapping of
 registers or other state need occur when switching among GPU threads. Resources stay allocated to
-each thread until it completes its execution" [4, 3.1]. "Registers are allocated to an entire
-block all at once" [4, 11.1.1].
+each thread until it completes its execution" [4, 3.1]. "Registers are allocated to an entire block
+all at once" [4, 11.1.1].
 
 ![Registers on an SM](/images/gpu-threads-blocks-registers/fig4-registers.svg)
-*Figure 4. Top: an SM's registers with one block of 1,024 threads at 32 registers each. Middle: in
-warp 0, every thread has its own registers. Bottom: what decides how many a kernel needs.*
+*Figure 4. Top: an SM's registers with four blocks of 256 threads at 32 registers each; half of them
+are left free. Middle: in warp 0, every thread has its own registers. Bottom: what decides how many a
+kernel needs.*
 
 A thread cannot read another thread's registers, with one exception: the warp shuffle functions
 (`__shfl_sync`, `__shfl_xor_sync`, …) exchange a variable between the threads of one warp [3, Warp
@@ -423,8 +463,8 @@ A register holds 32 bits [3, Table 21], so wider types take more than one:
 
 In the example, the two `float4`s are 8 registers; the eight `size_t` indices are up to 16, fewer
 when some are no longer live; the parameters and computed addresses need a few more. **My estimate is
-20 to 30 registers per thread.** The real number is what `--ptxas-options=-v` or
-`cudaFuncGetAttributes` reports (Section 7.4).
+20 to 30 registers per thread**, which the GPU rounds up to 24 or 32. The real number is what
+`--ptxas-options=-v` or `cudaFuncGetAttributes` reports (Section 8.4).
 
 ### 5.6 The limit per thread depends on the block size
 
@@ -433,15 +473,16 @@ All the threads on an SM share its 65,536 registers, and one thread can have at 
 
 | threads on the SM | most registers each thread can have |
 |---:|---:|
-| 1,024 | 65,536 / 1,024 = 64 |
+| 1,024 (for example, 4 blocks of 256) | 65,536 / 1,024 = 64 |
 | 512 | 128 |
-| 256 | 255 (the per-thread maximum) |
+| 256 (a single block of 256) | 255 (the per-thread maximum) |
 
 *Table 12. Arithmetic on the limits.*
 
 "If there are not enough registers or shared memory available per multiprocessor to process at least
-one block, the kernel will fail to launch" [3, Hardware Multithreading]. With blocks of 1,024, every
-thread must fit in 64.
+one block, the kernel will fail to launch" [3, Hardware Multithreading]. With blocks of 256, that
+failure only comes past 255 registers, where the compiler spills instead (Section 8.3); what changes
+first is how many of the blocks fit at once.
 
 ### 5.7 Occupancy
 
@@ -450,20 +491,21 @@ possible active warps" [4, 11.1]. Registers decide it through the number of bloc
 
 | registers per thread | block size | registers per block | blocks per SM | warps | occupancy |
 |---:|---:|---:|---:|---:|---:|
-| 32 | 1,024 | 32,768 | 1 | 32 | 100% |
-| 64 | 1,024 | 65,536 | 1 | 32 | 100% |
-| 72 | 1,024 | 73,728 | 0: the launch fails | — | — |
-| 80 | 256 | 20,480 | 3 | 24 | 75% |
+| 32 | 256 | 8,192 | 4 | 32 | 100% |
+| 64 | 256 | 16,384 | 4 | 32 | 100% |
+| 72 | 256 | 18,432 | 3 | 24 | 75% |
+| 88 | 256 | 22,528 | 2 | 16 | 50% |
 | 128 | 256 | 32,768 | 2 | 16 | 50% |
+| 72 | 1,024 | 73,728 | 0: the launch fails | — | — |
 
-*Table 13. Arithmetic with the rules of Section 5.3 on a T4 SM (32 warps, 65,536 registers).*
+*Table 13. Arithmetic with the rules of Section 5.3 on a T4 SM (32 warps, 65,536 registers): blocks
+per SM is the smallest of 4 (warps), 65,536 / registers per block, and 16.*
 
 Occupancy matters because "executing other warps when one warp is paused or stalled is the only way
 to hide latencies and keep the hardware busy", but it is not a goal in itself: "Higher occupancy does
 not always equate to higher performance—there is a point above which additional occupancy does not
 improve performance. However, low occupancy always interferes with the ability to hide memory
-latency" [4, 11.1]. Volkov showed that kernels doing more independent work per thread, with more
-registers, can reach near-peak speed at low occupancy [8].
+latency" [4, 11.1]. Section 7 uses this freedom.
 
 ## 6. Getting data in and out
 
@@ -473,7 +515,7 @@ Every value a kernel needs has to come in from GPU memory at least once. On the 
 that are smaller and faster the closer they are to the SM. Jia et al. measured each level on the T4:
 
 ![Where the numbers live](/images/gpu-threads-blocks-registers/fig5-memory.svg)
-*Figure 5. A T4's memories and their measured read latencies [6]. The red path is a spill (Section 7).*
+*Figure 5. A T4's memories and their measured read latencies [6]. The red path is a spill (Section 8).*
 
 | place | where | size on a T4 | read latency on a T4 | who sees it |
 |---|---|---|---|---|
@@ -483,8 +525,8 @@ that are smaller and faster the closer they are to the SM. Jia et al. measured e
 | L2 cache | the chip | 4 MB | ≈ 188 cycles | all SMs |
 | GPU memory | separate chips | 16 GB | 296 cycles; 616 on a TLB miss | everyone |
 
-*Table 14. Sizes and latencies from Jia et al. [6, Table 3.1, Figure 3.5], in cycles at 1,590 MHz.
-The 616 includes a miss in the address-translation cache (TLB).*
+*Table 14. Sizes and latencies from Jia et al. [6, Table 3.1, Figure 3.5], in cycles at 1,590 MHz,
+measured one access at a time. The 616 includes a miss in the address-translation cache (TLB).*
 
 ### 6.2 Hiding the wait
 
@@ -500,9 +542,8 @@ How many warps are needed depends on the code: "more warps are required if the r
 of instructions with no off-chip memory operands [...] to the number of instructions with off-chip
 memory operands is low (this ratio is commonly called the arithmetic intensity of the program)"
 [3, Multiprocessor Level]. The example does 4 adds per 3 loads, a very low ratio, so it needs many
-warps in flight; its speed is then set by the memory bandwidth, 320 GB/s on paper and 220 GiB/s
-measured by Jia et al.'s benchmark [6, Table 3.1]. Volkov's thesis models these questions in detail,
-including Little's law: the data in flight must equal the latency times the throughput [7].
+requests in flight; its speed is then set by the memory bandwidth, 320 GB/s on paper and 220 GiB/s
+measured by Jia et al.'s benchmark [6, Table 3.1].
 
 Two details:
 
@@ -515,16 +556,55 @@ Two details:
   read 32 `float4`s that lie next to each other: 512 bytes, 16 transactions of 32 bytes, the fewest
   possible.
 
-### 6.3 When holding more in registers helps
+## 7. Spending registers to cut the time spent on memory
 
-Registers save memory traffic when **the same value is used more than once**: it is read once and
-then used from its register. When each value is used once, the bytes read stay the same however much
-a thread holds. In the example, each `wte` value is read once and used once, so a forward reads
-4,096 × 768 × 4 bytes = 12.6 MB of `wte` whether a thread loads 1, 4 or 64 floats at a time.
+### 7.1 Two ways registers save memory time
 
-A matrix multiplication is the opposite: each input value is multiplied by many weights. Computing a
-tile of outputs per thread, held in registers, lets each loaded value be used many times
-(arithmetic):
+The example uses an estimated 26 registers per thread out of the 64 it may have at full occupancy
+(Figure 4): more than half of each SM's registers are idle. Registers can cut the time a kernel spends
+on memory in two different ways:
+
+| way | what the registers hold | what it saves | needs |
+|---|---|---|---|
+| **reuse** | a value that will be used again | reads: the value is loaded once instead of several times | the same value used more than once |
+| **more loads in flight** | several loaded values that are not used yet | waiting: several waits overlap in one thread | independent loads |
+
+*Table 15. Neither changes the result of the kernel; both cost registers.*
+
+### 7.2 Reuse: load once, use many times
+
+A value in a register costs nothing to read again [4, 10.2.7], so a value used by several outputs
+should be loaded once and kept.
+
+**The example has little to reuse.** Each `wte` value is used once. The only shared input is `wpe`:
+position *t*'s row is added to the B = 4 rows of the batch, and the example loads it 4 times, by 4
+different threads. Giving each thread one position and one column, and all B rows, loads it once:
+
+```cpp
+// one thread per (t, column): wpe[t][column] is loaded once and used for all B rows
+float4 position_part = wpe[t * groups_per_row + column];
+for (size_t b = 0; b < B; b++) {
+    size_t row = b * T + t;
+    float4 token_part = wte[(size_t)token_ids[row] * groups_per_row + column];
+    encoded[row * groups_per_row + column] = make_float4(token_part.x + position_part.x, ...);
+}
+```
+
+| | float4 loads of `wpe` | all float4 loads |
+|---|---:|---:|
+| the example | 786,432 | 1,572,864 |
+| one thread per (t, column) | 196,608 | 983,040 (−37.5%) |
+
+*Table 16. Arithmetic, for B = 4, T = 1,024.*
+
+The bytes from GPU memory change much less than the table suggests: `wpe` is 3 MB and fits in the
+T4's 4 MB L2 cache [6], so the repeated loads mostly hit L2 already (≈ 188 cycles instead of 296).
+What the change saves is requests to L2, not trips to GPU memory. It also has a cost: 196,608 threads
+with work instead of 524,288, each doing 4 rows. Whether it is faster has to be measured.
+
+**Matrix multiplication is where reuse pays.** In `encoded @ W` with `W` of 768 × 768, each input
+value is multiplied by 768 weights. A thread that computes a tile of outputs, kept in registers, uses
+each loaded value many times (arithmetic):
 
 ```
 1 output per thread:       per step load 1 x and 1 w  →  1 multiply-add           (0.5 per load)
@@ -532,14 +612,97 @@ tile of outputs per thread, held in registers, lets each loaded value be used ma
 ```
 
 This *register blocking* is how Volkov and Demmel's matrix multiplication reached near-peak speed
-[9], and the Best Practices Guide notes the same idea: "some operations common to each element can be
-performed by the thread once, amortizing the cost over the number of shared memory elements processed
-by the thread" [4, 11.4]. Its price is registers: 64 running sums need 64 of them, which lowers
-occupancy (Table 13), the trade-off Volkov studies in [8].
+[9], and the Best Practices Guide describes the same idea: "some operations common to each element
+can be performed by the thread once, amortizing the cost over the number of shared memory elements
+processed by the thread" [4, 11.4]. Its price is 64 running sums, so 64 registers or more, which
+lowers occupancy (Table 13).
 
-## 7. When registers run out
+### 7.3 More loads in flight: ask for several before using any
 
-### 7.1 Spilling
+When each value is used once, registers can still save time, by **overlapping waits inside one
+thread**. In the example, a thread asks for one `float4` of `wte` and one of `wpe`, waits about 300
+cycles, adds, stores, and only then asks for the next. If it asks for four before it uses any, the
+four waits overlap:
+
+![Loads in flight](/images/gpu-threads-blocks-registers/fig7-ilp.svg)
+*Figure 7. One thread over 1,000 cycles, with one float4 per round or four. Illustrative timings.*
+
+```cpp
+#define GROUPS_PER_THREAD 4
+
+__global__ void encoder_forward_kernel_x4(float4* encoded, const int* token_ids, const float4* wte,
+                                          const float4* wpe, size_t B, size_t T, size_t embed_dim) {
+    size_t threads = (size_t)gridDim.x * blockDim.x;
+    size_t first = (size_t)blockIdx.x * blockDim.x + threadIdx.x;
+    size_t groups_per_row = embed_dim / 4, groups = B * T * groups_per_row;
+    for (size_t base = first; base < groups; base += threads * GROUPS_PER_THREAD) {
+        float4 token_part[GROUPS_PER_THREAD], position_part[GROUPS_PER_THREAD];
+        #pragma unroll
+        for (int k = 0; k < GROUPS_PER_THREAD; k++) {           // 1. ask for all of them
+            size_t group = base + k * threads;
+            if (group < groups) {
+                size_t row = group / groups_per_row, column = group % groups_per_row;
+                token_part[k] = wte[(size_t)token_ids[row] * groups_per_row + column];
+                position_part[k] = wpe[(row % T) * groups_per_row + column];
+            }
+        }
+        #pragma unroll
+        for (int k = 0; k < GROUPS_PER_THREAD; k++) {           // 2. then use them
+            size_t group = base + k * threads;
+            if (group < groups)
+                encoded[group] = make_float4(token_part[k].x + position_part[k].x, token_part[k].y + position_part[k].y,
+                                             token_part[k].z + position_part[k].z, token_part[k].w + position_part[k].w);
+        }
+    }
+}
+```
+
+Three details make it work:
+
+- **The values live in registers, not local memory.** `token_part[k]` is an array, and an array
+  indexed by a value known only at run time goes to local memory [3, Device Memory Accesses]. The
+  `#pragma unroll` on loops with a constant count turns every `k` into a constant, so the compiler can
+  keep each element in its own registers. This must be checked: `localSizeBytes` must stay 0
+  (Section 8.4).
+- **Each round still coalesces.** The k-th load of every thread in a warp is `base + k × threads`, and
+  neighbouring threads have neighbouring `base`, so each of the four loads of a warp reads 512
+  neighbouring bytes, as before.
+- **The loads are independent.** None of the four needs another's result, so the warp can issue all
+  of them before it stalls on the first add [3, Multiprocessor Level].
+
+This is what Volkov calls instruction-level parallelism (ILP): fewer threads, each with more
+independent work, can hide the same latency [8]. The Best Practices Guide agrees: "with a high
+degree of exposed instruction-level parallelism (ILP) it is, in some cases, possible to fully cover
+latency with a low occupancy" [4, 11.3]. Why more requests in flight help at all is Little's law:
+the data in flight must equal the latency times the throughput [7]. The latencies of Table 14 are
+measured one access at a time; under full load the latency is higher [7], so more data has to be in
+flight than that number suggests. My own gradient norm kernel is an example: reading 16 bytes per
+request instead of 4, with the same threads, took it from 215 to 278 GB/s on a T4 [2].
+
+### 7.4 How far to go
+
+Each extra `float4` in flight costs 8 registers (4 for the `wte` part, 4 for the `wpe` part), and
+past 64 per thread, fewer blocks of 256 fit (Table 13). For the example on a T4:
+
+| float4s per round | registers per thread (estimate) | rounded | blocks of 256 per SM | warps | float4 loads in flight per SM, at most |
+|---:|---:|---:|---:|---:|---:|
+| 1 | ≈ 26 | 32 | 4 | 32 | 32 × 32 × 2 = 2,048 (32 KB) |
+| 2 | ≈ 34 | 40 | 4 | 32 | 4,096 (64 KB) |
+| 4 | ≈ 50 | 56 | 4 | 32 | 8,192 (128 KB) |
+| 8 | ≈ 82 | 88 | 2 | 16 | 16 × 32 × 16 = 8,192 (128 KB) |
+
+*Table 17. Register counts are my estimates; the rest is arithmetic with the rules of Section 5.
+"At most" assumes every warp has issued all its loads.*
+
+In this model, 4 per round keeps every warp slot full and has 4 times as many requests in flight; 8
+per round loses half the warps and gains nothing more. The model leaves out the extra index
+arithmetic, the larger last round and the fact that wpe mostly comes from L2, so it only says which
+versions are worth timing. **I have not timed these versions**: the next step is to build each one,
+check its registers and local memory with the test of Section 8.4, and time it against the example.
+
+## 8. When registers run out
+
+### 8.1 Spilling
 
 If a kernel needs more registers than it may use, the compiler keeps some variables in local memory
 instead. The guide lists what goes there: arrays it cannot prove are indexed with constants, "large
@@ -548,7 +711,7 @@ uses more registers than available (this is also known as register spilling)"
 [3, Device Memory Accesses]. A spilled variable is stored to local memory and loaded back when it is
 next used. **The results stay correct**; only the speed changes.
 
-### 7.2 Local memory
+### 8.2 Local memory
 
 "Local memory is so named because its scope is local to the thread, not because of its physical
 location. In fact, local memory is off-chip. Hence, access to local memory is as expensive as access
@@ -563,7 +726,11 @@ for a spilled variable. And the cache: "an L2 cache shared by all SMs [...] is u
 to local or global memory, including temporary register spills" [3, Compute Capability 7.x]; an L2
 hit takes ≈ 188 cycles on the T4, against 296 from GPU memory [6].
 
-### 7.3 When a kernel spills, and when its launch fails instead
+So spending registers (Section 7) has a ceiling: a version that needs more registers than it may have
+spills, and the spill traffic goes back to memory, the very thing the extra registers were meant to
+save.
+
+### 8.3 When a kernel spills, and when its launch fails instead
 
 | situation | result | source |
 |---|---|---|
@@ -572,7 +739,7 @@ hit takes ≈ 188 cycles on the T4, against 296 from GPU memory [6].
 | a limit set for a whole file with `-maxrregcount` | the same, except for kernels with launch bounds, where it is ignored | [3, Launch Bounds], [4, 10.2.7.1] |
 | no limit, but registers × threads per block > 65,536 | no spill, but the launch fails with `cudaErrorLaunchOutOfResources`, "too many resources requested for launch" | [3, Hardware Multithreading], [4, 11.1], [5] |
 
-*Table 15. Without launch bounds, the compiler does not know the block size the kernel will be
+*Table 18. Without launch bounds, the compiler does not know the block size the kernel will be
 launched with.*
 
 The Runtime API describes the last error as one that "usually indicates that the user has attempted
@@ -580,9 +747,12 @@ to pass too many arguments to the device kernel, or the kernel launch specifies 
 the kernel's register count" [5]. The Best Practices Guide's advice is to tell the compiler the block
 size: "developers should include the single argument `__launch_bounds__(maxThreadsPerBlock)` which
 specifies the largest block size that the kernel will be launched with. Failure to do so could lead to
-'too many resources requested for launch' errors" [4, 11.1].
+'too many resources requested for launch' errors" [4, 11.1]. The two-argument form,
+`__launch_bounds__(256, 4)`, also asks for 4 resident blocks of 256, and the compiler then keeps the
+kernel within the registers that allows, 64 per thread on a T4 [3, Launch Bounds]: a direct way to
+hold the versions of Table 17 to full occupancy, at the risk of spills.
 
-### 7.4 Checking a kernel
+### 8.4 Checking a kernel
 
 **The compiler.** `nvcc --ptxas-options=-v` (short: `-Xptxas -v`) prints the registers per thread of
 every kernel [4, 11.1.1] and "total local memory usage per kernel" [4, 10.2.4]. The output looks like:
@@ -604,7 +774,7 @@ encoded.) Registers × threads per block must be ≤ 65,536, and the spill bytes
 | `maxThreadsPerBlock` | "The maximum number of threads per block, beyond which a launch of the function would fail. This number depends on both the function and the device on which the function is currently loaded." |
 | `localSizeBytes` | "The size in bytes of local memory used by each thread of this function." |
 
-*Table 16. From the Runtime API's `cudaFuncAttributes` [5].*
+*Table 19. From the Runtime API's `cudaFuncAttributes` [5].*
 
 For a kernel using 72 registers, `maxThreadsPerBlock` would be 896: a warp takes 72 × 32 = 2,304
 registers, and 65,536 / 2,304 = 28 whole warps (arithmetic). A test can check every kernel of a file
@@ -628,13 +798,17 @@ static void every_kernel_fits_a_block_of_encoder_threads(void)
 }
 ```
 
+For the versions of Section 7, the same test answers both questions at once: `numRegs` shows how
+many registers the extra loads really cost, and `localSizeBytes` shows whether the arrays stayed in
+registers.
+
 **The launch.** Following every launch with `cudaCheck(cudaGetLastError())` reports a failed launch
 right where it happens, instead of leaving wrong numbers behind.
 
 **A profiler.** Nsight Compute shows registers per thread, occupancy and memory traffic on a real
 run, and includes an occupancy calculator [4, 11.1.1].
 
-### 7.5 What the check costs
+### 8.5 What the check costs
 
 `cudaFuncGetAttributes` is a CPU call that reads what the compiler recorded about the kernel; it
 launches nothing. Two one-time costs can land on it:
@@ -649,7 +823,7 @@ launches nothing. Two one-time costs can land on it:
 Since the answer only changes when the code is recompiled, it belongs in a one-time check such as a
 test, not before every launch.
 
-### 7.6 Fuse first, split last
+### 8.6 Fuse first, split last
 
 Splitting a kernel into two gives each part its own registers, but it moves the values between the
 parts through GPU memory: the first kernel's results must be stored before it ends, and the second
@@ -666,22 +840,22 @@ split:   kernel 1: load x → step 1 → store tmp         ← tmp goes out to G
 | spilling a few variables | a few bytes per thread | often |
 | splitting, with a `tmp` of 3.1 million floats | 12.6 MB out and 12.6 MB back | no |
 
-*Table 17. Two ways to run out of registers.*
+*Table 20. Two ways to run out of registers.*
 
 My fused AdamW is an example: one kernel instead of 10 moved about 3.3× fewer bytes for the same
 arithmetic [13]. The order to try things:
 
 1. Write it as **one kernel**.
-2. Check registers and spills (Section 7.4). Zero spill: done.
-3. If it spills: keep **fewer values live at once**, give each thread less work, or use **smaller
-   blocks**, which allow more registers per thread (Table 12).
+2. Check registers and spills (Section 8.4). Zero spill: done.
+3. If it spills: keep **fewer values live at once**, give each thread less work (fewer float4s per
+   round in Section 7.4), or use **smaller blocks**, which allow more registers per thread (Table 12).
 4. Only then, and measured, **split**.
 
 Good reasons to split are rarely registers: two parts that need different thread layouts, or a part
 that needs all of another part finished first, from every block, which only the end of a kernel
 guarantees (Section 2.3).
 
-## 8. The limits in one table
+## 9. The limits in one table
 
 | limit | Tesla T4 (7.5) | past it |
 |---|---|---|
@@ -696,22 +870,23 @@ guarantees (Section 2.3).
 | local memory per thread | 512 KB | — |
 | SMs | 40 | blocks wait for a free SM: more waves |
 
-*Table 18. From the Programming Guide [3, Table 21; Compute Capability 7.x], except the SM count [6].*
+*Table 21. From the Programming Guide [3, Table 21; Compute Capability 7.x], except the SM count [6].*
 
-## 9. Using them well
+## 10. Using them well
 
 | | do | source |
 |---|---|---|
 | 1 | threads per block: a multiple of 32, at least 64; start with 128–256 and measure | [4, 11.3] |
-| 2 | more blocks than SMs, several per SM; thousands per launch to scale to future GPUs, or a grid-stride loop over a fixed grid | [4, 11.3], [11] |
-| 3 | neighbouring threads read neighbouring addresses, so a warp's loads coalesce | [4, 10.2.1] |
-| 4 | keep registers per thread low enough for the occupancy you need (64 for 1,024 threads on a T4), but do not chase occupancy for its own sake | [4, 11.1], [8] |
-| 5 | give kernels `__launch_bounds__(maxThreadsPerBlock)`, so the compiler knows the block size | [4, 11.1], [3, Launch Bounds] |
-| 6 | keep few values live at once; reuse values while they are in registers | [12], [9] |
-| 7 | read each value once and write it once; fuse before splitting | Section 7.6 |
-| 8 | check registers and local memory with `--ptxas-options=-v`, or in a test with `cudaFuncGetAttributes` | [4, 10.2.4], [5] |
+| 2 | prefer several blocks per SM to one big block, unless threads must combine results across the whole block | [4, 11.3], Section 4.2 |
+| 3 | more blocks than SMs, several per SM; thousands per launch to scale to future GPUs, or a grid-stride loop over a fixed grid | [4, 11.3], [11] |
+| 4 | neighbouring threads read neighbouring addresses, so a warp's loads coalesce | [4, 10.2.1] |
+| 5 | spend idle registers: keep reused values in registers, and ask for several independent loads before using any | [9], [8], [4, 11.3], Section 7 |
+| 6 | keep registers per thread at or under 65,536 ÷ the threads wanted on an SM (64 for 4 blocks of 256 on a T4), but do not chase occupancy for its own sake | [4, 11.1], [8] |
+| 7 | give kernels `__launch_bounds__`, so the compiler knows the block size | [4, 11.1], [3, Launch Bounds] |
+| 8 | read each value once and write it once; fuse before splitting | Section 8.6 |
+| 9 | check registers and local memory with `--ptxas-options=-v`, or in a test with `cudaFuncGetAttributes`, and time every version | [4, 10.2.4], [5] |
 
-*Table 19. A checklist.*
+*Table 22. A checklist.*
 
 ## References
 
@@ -724,9 +899,10 @@ guarantees (Section 2.3).
    Memory Accesses, Launch Bounds, Warp Shuffle Functions, Lazy Loading, Compute Capability 7.x, and
    Table 21 "Technical Specifications per Compute Capability".
    [docs.nvidia.com/cuda/archive/12.6.0/cuda-c-programming-guide](https://docs.nvidia.com/cuda/archive/12.6.0/cuda-c-programming-guide/index.html)
-4. NVIDIA. *CUDA C++ Best Practices Guide.* Sections 3.1 (Differences between Host and Device), 10.2.1 (Coalesced
-   Access to Global Memory), 10.2.4 (Local Memory), 10.2.7 (Registers), 11.1 (Occupancy), 11.2
-   (Hiding Register Dependencies), 11.3 (Thread and Block Heuristics), 11.4 (Effects of Shared Memory).
+4. NVIDIA. *CUDA C++ Best Practices Guide.* Sections 3.1 (Differences between Host and Device), 10.2.1
+   (Coalesced Access to Global Memory), 10.2.4 (Local Memory), 10.2.7 (Registers), 11.1 (Occupancy),
+   11.2 (Hiding Register Dependencies), 11.3 (Thread and Block Heuristics), 11.4 (Effects of Shared
+   Memory).
    [docs.nvidia.com/cuda/cuda-c-best-practices-guide](https://docs.nvidia.com/cuda/cuda-c-best-practices-guide/index.html)
 5. NVIDIA. *CUDA Runtime API*: `cudaFuncAttributes`, and the error codes `cudaErrorInvalidConfiguration`
    and `cudaErrorLaunchOutOfResources`.
