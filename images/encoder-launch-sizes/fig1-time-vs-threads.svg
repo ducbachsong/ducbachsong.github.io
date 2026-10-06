@@ -1,0 +1,156 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 400" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="400" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">Encoder kernels on a Tesla T4: time against threads launched (lower is better)</text>
+  <text x="20" y="44" fill="#495057">GPT-2 small, 4 x 1024 tokens. 32 launches per kernel; each point is the mean of runs 2..20.</text>
+  <g stroke="#e9ecef">
+    <line x1="80" y1="290.0" x2="700" y2="290.0"/>
+    <line x1="80" y1="250.0" x2="700" y2="250.0"/>
+    <line x1="80" y1="210.0" x2="700" y2="210.0"/>
+    <line x1="80" y1="170.0" x2="700" y2="170.0"/>
+    <line x1="80" y1="130.0" x2="700" y2="130.0"/>
+    <line x1="80" y1="90.0" x2="700" y2="90.0"/>
+    <line x1="80.0" y1="70" x2="80.0" y2="330"/>
+    <line x1="204.0" y1="70" x2="204.0" y2="330"/>
+    <line x1="328.0" y1="70" x2="328.0" y2="330"/>
+    <line x1="452.0" y1="70" x2="452.0" y2="330"/>
+    <line x1="576.0" y1="70" x2="576.0" y2="330"/>
+    <line x1="700.0" y1="70" x2="700.0" y2="330"/>
+  </g>
+  <line x1="80" y1="330" x2="700" y2="330" stroke="#adb5bd"/>
+  <g font-size="11" fill="#868e96" text-anchor="end">
+    <text x="74" y="334.0">0</text>
+    <text x="74" y="294.0">0.1</text>
+    <text x="74" y="254.0">0.2</text>
+    <text x="74" y="214.0">0.3</text>
+    <text x="74" y="174.0">0.4</text>
+    <text x="74" y="134.0">0.5</text>
+    <text x="74" y="94.0">0.6</text>
+  </g>
+  <text x="74" y="60" font-size="11" fill="#868e96" text-anchor="end">ms</text>
+  <g font-size="11" fill="#868e96" text-anchor="middle">
+    <text x="80.0" y="346">4K</text>
+    <text x="204.0" y="346">16K</text>
+    <text x="328.0" y="346">65K</text>
+    <text x="452.0" y="346">262K</text>
+    <text x="576.0" y="346">1M</text>
+    <text x="700.0" y="346">4M</text>
+  </g>
+  <text x="390.0" y="364" font-size="12" fill="#495057" text-anchor="middle">threads launched = blocks x threads per block (log scale)</text>
+  <line x1="286.0" y1="66" x2="286.0" y2="330" stroke="#495057" stroke-dasharray="4,3"/>
+  <text x="291.0" y="76" font-size="11" fill="#495057">40,960: all the threads a T4 holds at once</text>
+  <g fill="#1c7ed6" fill-opacity="0.8">
+    <circle cx="100.0" cy="223.6" r="3.6"><title>forward, 40 x 128: 0.266 ms</title></circle>
+    <circle cx="162.0" cy="264.0" r="3.6"><title>forward, 40 x 256: 0.165 ms</title></circle>
+    <circle cx="224.0" cy="267.2" r="3.6"><title>forward, 40 x 512: 0.157 ms</title></circle>
+    <circle cx="286.0" cy="265.6" r="3.6"><title>forward, 40 x 1024: 0.161 ms</title></circle>
+    <circle cx="162.0" cy="263.2" r="3.6"><title>forward, 80 x 128: 0.167 ms</title></circle>
+    <circle cx="224.0" cy="267.2" r="3.6"><title>forward, 80 x 256: 0.157 ms</title></circle>
+    <circle cx="286.0" cy="265.6" r="3.6"><title>forward, 80 x 512: 0.161 ms</title></circle>
+    <circle cx="348.0" cy="266.0" r="3.6"><title>forward, 80 x 1024: 0.160 ms</title></circle>
+    <circle cx="224.0" cy="266.8" r="3.6"><title>forward, 160 x 128: 0.158 ms</title></circle>
+    <circle cx="286.0" cy="266.0" r="3.6"><title>forward, 160 x 256: 0.160 ms</title></circle>
+    <circle cx="348.0" cy="266.8" r="3.6"><title>forward, 160 x 512: 0.158 ms</title></circle>
+    <circle cx="410.0" cy="268.0" r="3.6"><title>forward, 160 x 1024: 0.155 ms</title></circle>
+    <circle cx="286.0" cy="266.0" r="3.6"><title>forward, 320 x 128: 0.160 ms</title></circle>
+    <circle cx="348.0" cy="265.6" r="3.6"><title>forward, 320 x 256: 0.161 ms</title></circle>
+    <circle cx="410.0" cy="266.4" r="3.6"><title>forward, 320 x 512: 0.159 ms</title></circle>
+    <circle cx="472.0" cy="267.6" r="3.6"><title>forward, 320 x 1024: 0.156 ms</title></circle>
+    <circle cx="328.0" cy="269.2" r="3.6"><title>forward, 512 x 128: 0.152 ms</title></circle>
+    <circle cx="390.0" cy="267.2" r="3.6"><title>forward, 512 x 256: 0.157 ms</title></circle>
+    <circle cx="452.0" cy="266.4" r="3.6"><title>forward, 512 x 512: 0.159 ms</title></circle>
+    <circle cx="514.0" cy="266.4" r="3.6"><title>forward, 512 x 1024: 0.159 ms</title></circle>
+    <circle cx="390.0" cy="267.2" r="3.6"><title>forward, 1024 x 128: 0.157 ms</title></circle>
+    <circle cx="452.0" cy="266.0" r="3.6"><title>forward, 1024 x 256: 0.160 ms</title></circle>
+    <circle cx="514.0" cy="266.4" r="3.6"><title>forward, 1024 x 512: 0.159 ms</title></circle>
+    <circle cx="576.0" cy="265.6" r="3.6"><title>forward, 1024 x 1024: 0.161 ms</title></circle>
+    <circle cx="452.0" cy="265.6" r="3.6"><title>forward, 2048 x 128: 0.161 ms</title></circle>
+    <circle cx="514.0" cy="266.4" r="3.6"><title>forward, 2048 x 256: 0.159 ms</title></circle>
+    <circle cx="576.0" cy="267.2" r="3.6"><title>forward, 2048 x 512: 0.157 ms</title></circle>
+    <circle cx="638.0" cy="262.4" r="3.6"><title>forward, 2048 x 1024: 0.169 ms</title></circle>
+    <circle cx="514.0" cy="266.4" r="3.6"><title>forward, 4096 x 128: 0.159 ms</title></circle>
+    <circle cx="576.0" cy="266.4" r="3.6"><title>forward, 4096 x 256: 0.159 ms</title></circle>
+    <circle cx="638.0" cy="265.2" r="3.6"><title>forward, 4096 x 512: 0.162 ms</title></circle>
+    <circle cx="700.0" cy="255.6" r="3.6"><title>forward, 4096 x 1024: 0.186 ms</title></circle>
+  </g>
+  <g fill="#e8590c" fill-opacity="0.8">
+    <circle cx="100.0" cy="90.0" r="3.6"><title>wte backward, 40 x 128: 0.600 ms</title></circle>
+    <circle cx="162.0" cy="197.2" r="3.6"><title>wte backward, 40 x 256: 0.332 ms</title></circle>
+    <circle cx="224.0" cy="249.2" r="3.6"><title>wte backward, 40 x 512: 0.202 ms</title></circle>
+    <circle cx="286.0" cy="256.4" r="3.6"><title>wte backward, 40 x 1024: 0.184 ms</title></circle>
+    <circle cx="162.0" cy="195.6" r="3.6"><title>wte backward, 80 x 128: 0.336 ms</title></circle>
+    <circle cx="224.0" cy="250.0" r="3.6"><title>wte backward, 80 x 256: 0.200 ms</title></circle>
+    <circle cx="286.0" cy="259.2" r="3.6"><title>wte backward, 80 x 512: 0.177 ms</title></circle>
+    <circle cx="348.0" cy="259.2" r="3.6"><title>wte backward, 80 x 1024: 0.177 ms</title></circle>
+    <circle cx="224.0" cy="249.2" r="3.6"><title>wte backward, 160 x 128: 0.202 ms</title></circle>
+    <circle cx="286.0" cy="261.6" r="3.6"><title>wte backward, 160 x 256: 0.171 ms</title></circle>
+    <circle cx="348.0" cy="261.6" r="3.6"><title>wte backward, 160 x 512: 0.171 ms</title></circle>
+    <circle cx="410.0" cy="262.8" r="3.6"><title>wte backward, 160 x 1024: 0.168 ms</title></circle>
+    <circle cx="286.0" cy="260.4" r="3.6"><title>wte backward, 320 x 128: 0.174 ms</title></circle>
+    <circle cx="348.0" cy="261.6" r="3.6"><title>wte backward, 320 x 256: 0.171 ms</title></circle>
+    <circle cx="410.0" cy="263.6" r="3.6"><title>wte backward, 320 x 512: 0.166 ms</title></circle>
+    <circle cx="472.0" cy="264.0" r="3.6"><title>wte backward, 320 x 1024: 0.165 ms</title></circle>
+    <circle cx="328.0" cy="261.2" r="3.6"><title>wte backward, 512 x 128: 0.172 ms</title></circle>
+    <circle cx="390.0" cy="262.8" r="3.6"><title>wte backward, 512 x 256: 0.168 ms</title></circle>
+    <circle cx="452.0" cy="264.0" r="3.6"><title>wte backward, 512 x 512: 0.165 ms</title></circle>
+    <circle cx="514.0" cy="265.6" r="3.6"><title>wte backward, 512 x 1024: 0.161 ms</title></circle>
+    <circle cx="390.0" cy="262.4" r="3.6"><title>wte backward, 1024 x 128: 0.169 ms</title></circle>
+    <circle cx="452.0" cy="264.8" r="3.6"><title>wte backward, 1024 x 256: 0.163 ms</title></circle>
+    <circle cx="514.0" cy="265.6" r="3.6"><title>wte backward, 1024 x 512: 0.161 ms</title></circle>
+    <circle cx="576.0" cy="266.8" r="3.6"><title>wte backward, 1024 x 1024: 0.158 ms</title></circle>
+    <circle cx="452.0" cy="263.6" r="3.6"><title>wte backward, 2048 x 128: 0.166 ms</title></circle>
+    <circle cx="514.0" cy="265.6" r="3.6"><title>wte backward, 2048 x 256: 0.161 ms</title></circle>
+    <circle cx="576.0" cy="267.2" r="3.6"><title>wte backward, 2048 x 512: 0.157 ms</title></circle>
+    <circle cx="638.0" cy="267.2" r="3.6"><title>wte backward, 2048 x 1024: 0.157 ms</title></circle>
+    <circle cx="514.0" cy="265.6" r="3.6"><title>wte backward, 4096 x 128: 0.161 ms</title></circle>
+    <circle cx="576.0" cy="267.6" r="3.6"><title>wte backward, 4096 x 256: 0.156 ms</title></circle>
+    <circle cx="638.0" cy="268.0" r="3.6"><title>wte backward, 4096 x 512: 0.155 ms</title></circle>
+    <circle cx="700.0" cy="265.2" r="3.6"><title>wte backward, 4096 x 1024: 0.162 ms</title></circle>
+  </g>
+  <g fill="#2b8a3e" fill-opacity="0.8">
+    <circle cx="100.0" cy="296.0" r="3.6"><title>wpe backward, 40 x 128: 0.085 ms</title></circle>
+    <circle cx="162.0" cy="297.2" r="3.6"><title>wpe backward, 40 x 256: 0.082 ms</title></circle>
+    <circle cx="224.0" cy="298.0" r="3.6"><title>wpe backward, 40 x 512: 0.080 ms</title></circle>
+    <circle cx="286.0" cy="297.2" r="3.6"><title>wpe backward, 40 x 1024: 0.082 ms</title></circle>
+    <circle cx="162.0" cy="297.6" r="3.6"><title>wpe backward, 80 x 128: 0.081 ms</title></circle>
+    <circle cx="224.0" cy="297.6" r="3.6"><title>wpe backward, 80 x 256: 0.081 ms</title></circle>
+    <circle cx="286.0" cy="297.6" r="3.6"><title>wpe backward, 80 x 512: 0.081 ms</title></circle>
+    <circle cx="348.0" cy="297.6" r="3.6"><title>wpe backward, 80 x 1024: 0.081 ms</title></circle>
+    <circle cx="224.0" cy="298.4" r="3.6"><title>wpe backward, 160 x 128: 0.079 ms</title></circle>
+    <circle cx="286.0" cy="298.0" r="3.6"><title>wpe backward, 160 x 256: 0.080 ms</title></circle>
+    <circle cx="348.0" cy="298.4" r="3.6"><title>wpe backward, 160 x 512: 0.079 ms</title></circle>
+    <circle cx="410.0" cy="298.8" r="3.6"><title>wpe backward, 160 x 1024: 0.078 ms</title></circle>
+    <circle cx="286.0" cy="298.0" r="3.6"><title>wpe backward, 320 x 128: 0.080 ms</title></circle>
+    <circle cx="348.0" cy="297.6" r="3.6"><title>wpe backward, 320 x 256: 0.081 ms</title></circle>
+    <circle cx="410.0" cy="298.4" r="3.6"><title>wpe backward, 320 x 512: 0.079 ms</title></circle>
+    <circle cx="472.0" cy="298.8" r="3.6"><title>wpe backward, 320 x 1024: 0.078 ms</title></circle>
+    <circle cx="328.0" cy="298.8" r="3.6"><title>wpe backward, 512 x 128: 0.078 ms</title></circle>
+    <circle cx="390.0" cy="298.8" r="3.6"><title>wpe backward, 512 x 256: 0.078 ms</title></circle>
+    <circle cx="452.0" cy="298.8" r="3.6"><title>wpe backward, 512 x 512: 0.078 ms</title></circle>
+    <circle cx="514.0" cy="298.8" r="3.6"><title>wpe backward, 512 x 1024: 0.078 ms</title></circle>
+    <circle cx="390.0" cy="298.4" r="3.6"><title>wpe backward, 1024 x 128: 0.079 ms</title></circle>
+    <circle cx="452.0" cy="298.8" r="3.6"><title>wpe backward, 1024 x 256: 0.078 ms</title></circle>
+    <circle cx="514.0" cy="298.8" r="3.6"><title>wpe backward, 1024 x 512: 0.078 ms</title></circle>
+    <circle cx="576.0" cy="298.0" r="3.6"><title>wpe backward, 1024 x 1024: 0.080 ms</title></circle>
+    <circle cx="452.0" cy="298.8" r="3.6"><title>wpe backward, 2048 x 128: 0.078 ms</title></circle>
+    <circle cx="514.0" cy="298.8" r="3.6"><title>wpe backward, 2048 x 256: 0.078 ms</title></circle>
+    <circle cx="576.0" cy="297.6" r="3.6"><title>wpe backward, 2048 x 512: 0.081 ms</title></circle>
+    <circle cx="638.0" cy="294.8" r="3.6"><title>wpe backward, 2048 x 1024: 0.088 ms</title></circle>
+    <circle cx="514.0" cy="298.8" r="3.6"><title>wpe backward, 4096 x 128: 0.078 ms</title></circle>
+    <circle cx="576.0" cy="297.6" r="3.6"><title>wpe backward, 4096 x 256: 0.081 ms</title></circle>
+    <circle cx="638.0" cy="295.2" r="3.6"><title>wpe backward, 4096 x 512: 0.087 ms</title></circle>
+    <circle cx="700.0" cy="288.8" r="3.6"><title>wpe backward, 4096 x 1024: 0.103 ms</title></circle>
+  </g>
+  <circle cx="514.0" cy="266.4" r="7" fill="none" stroke="#212529" stroke-width="1.3"/>
+  <circle cx="514.0" cy="265.6" r="7" fill="none" stroke="#212529" stroke-width="1.3"/>
+  <circle cx="514.0" cy="298.8" r="7" fill="none" stroke="#212529" stroke-width="1.3"/>
+  <text x="510.0" y="251.6" font-size="11" fill="#212529" text-anchor="middle">512 x 1024 (encoder.cuh)</text>
+  <text x="109.0" y="94.0" font-size="11" fill="#e8590c">40 x 128: 0.600</text>
+  <text x="171.0" y="200.4" font-size="11" fill="#e8590c">0.33</text>
+  <text x="109.0" y="227.6" font-size="11" fill="#1c7ed6">0.266</text>
+  <text x="691.0" y="249.6" font-size="11" fill="#1c7ed6" text-anchor="end">4096 x 1024: 0.186</text>
+  <text x="691.0" y="282.8" font-size="11" fill="#2b8a3e" text-anchor="end">0.103</text>
+  <circle cx="480" cy="96" r="4" fill="#1c7ed6"/><text x="490" y="100" fill="#212529">forward</text>
+  <circle cx="480" cy="114" r="4" fill="#e8590c"/><text x="490" y="118" fill="#212529">wte backward</text>
+  <circle cx="480" cy="132" r="4" fill="#2b8a3e"/><text x="490" y="136" fill="#212529">wpe backward</text>
+  <text x="20" y="386" font-size="11" fill="#868e96">Left of the dashed line the T4 is partly empty; up to about 1M threads it is flat; at 4M most blocks are empty.</text>
+</svg>
