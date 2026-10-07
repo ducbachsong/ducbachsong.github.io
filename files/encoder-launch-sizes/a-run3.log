@@ -1,0 +1,149 @@
+
+forward_matches_pytorch
+    input: encoded.tolist()                     expected: {-1.21289, -0.732803, -2.32702, 0.350036, -1.06723, -0.326417, -0.0398935, 3.22338, 4.74536, 2.98665, 1.25957, -0.532561, -0.848173, 0.890537, -0.161519, 0.790927, ... (512 values)}   actual: {-1.21289, -0.732803, -2.32702, 0.350036, -1.06723, -0.326417, -0.0398935, 3.22338, 4.74536, 2.98665, 1.25957, -0.532561, -0.848173, 0.890537, -0.161519, 0.790927, ... (512 values)}   ok  (line 109)
+
+backward_matches_pytorch
+    input: wte_grad.tolist()                    expected: {-0.605994, -2.23786, 0.87409, -1.12942, 0.162045, 0.945037, 0.981752, -0.403377, -0.605113, 2.34581, 1.42161, -0.107746, 1.22546, -1.27597, 0.923791, -0.204588, ... (1024 values)}   actual: {-0.605994, -2.23786, 0.87409, -1.12942, 0.162045, 0.945037, 0.981752, -0.403377, -0.605113, 2.34581, 1.42161, -0.107746, 1.22546, -1.27597, 0.923791, -0.204588, ... (1024 values)}   difference: 9.76944e-08 (at most 1e-05)   ok  (line 133)
+    input: wpe_grad.tolist()                    expected: {-4.57736, 0.331533, -0.564078, 0.971728, -1.46719, 0.0971071, -0.165599, -3.23198, 1.35684, -0.797021, 3.06966, -1.92306, 1.41173, -1.76598, 3.57792, -0.130473, ... (256 values)}   actual: {-4.57736, 0.331533, -0.564078, 0.971728, -1.46719, 0.0971071, -0.165599, -3.23198, 1.35684, -0.797021, 3.06966, -1.92306, 1.41173, -1.76598, 3.57792, -0.130473, ... (256 values)}   difference: 0 (at most 1e-05)   ok  (line 134)
+    input: wte_grad.narrow(0, 16, 48).tolist()  expected: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (768 values)}   actual: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (768 values)}   ok  (line 135)
+    input: wpe_grad.narrow(0, 8, 8).tolist()    expected: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (128 values)}   actual: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (128 values)}   ok  (line 136)
+
+time_20_steps_on_gpt2_small_size
+    time in ms:   step   my forward   my backward   PyTorch forward   PyTorch backward
+                     1        0.160         0.254             0.583             15.815
+                     2        0.168         0.253             0.412              3.840
+                     3        0.166         0.258             0.330              3.703
+                     4        0.164         0.252             0.321              3.697
+                     5        0.165         0.252             0.335              3.698
+                     6        0.162         0.251             0.315              3.714
+                     7        0.164         0.258             0.315              3.702
+                     8        0.164         0.252             0.316              3.691
+                     9        0.164         0.252             0.319              3.697
+                    10        0.163         0.252             0.316              3.693
+                    11        0.165         0.252             0.312              3.682
+                    12        0.166         0.252             0.315              3.696
+                    13        0.165         0.252             0.315              3.691
+                    14        0.164         0.252             0.314              3.727
+                    15        0.166         0.251             0.315              3.708
+                    16        0.162         0.252             0.315              3.727
+                    17        0.164         0.252             0.318              3.694
+                    18        0.165         0.250             0.315              3.717
+                    19        0.164         0.251             0.316              3.695
+                    20        0.164         0.252             0.330              3.734
+    average of steps 2..20:       0.164         0.252             0.323              3.711
+    PyTorch takes, against mine:                                   1.97x             14.70x
+
+time_20_steps
+    input: encoded.tolist()                     expected: {1.16778, -3.00131, 2.59447, 1.42206, 0.0767131, 0.542343, -1.52754, -0.720535, 1.61317, 1.31621, -0.23742, 2.63563, -1.77252, -0.668174, -0.947706, 0.0421316, ... (3145728 values)}   actual: {1.16778, -3.00131, 2.59447, 1.42206, 0.0767131, 0.542343, -1.52754, -0.720535, 1.61317, 1.31621, -0.23742, 2.63563, -1.77252, -0.668174, -0.947706, 0.0421316, ... (3145728 values)}   ok  (line 181)
+    input: wte_grad.tolist()                    expected: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (38633472 values)}   actual: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (38633472 values)}   difference: 6.65997e-07 (at most 1e-05)   ok  (line 182)
+    input: wpe_grad.tolist()                    expected: {21.2166, -68.607, -34.1666, -6.19686, -27.7789, -32.0625, -13.0654, 0.945122, -69.1523, -9.67783, -45.7934, -13.3668, 15.7876, -8.36353, 1.94151, 6.63419, ... (786432 values)}   actual: {21.2166, -68.607, -34.1666, -6.19686, -27.7789, -32.0625, -13.0654, 0.945122, -69.1523, -9.67783, -45.7934, -13.3668, 15.7876, -8.36353, 1.94151, 6.63419, ... (786432 values)}   difference: 0 (at most 1e-05)   ok  (line 183)
+
+time_20_steps_on_gpt2_small_size_in_tensor_buffer
+    time in ms:   step   my forward   my backward   PyTorch forward   PyTorch backward
+                     1        0.158         0.252             0.375              1.825
+                     2        0.166         0.251             0.339              3.672
+                     3        0.162         0.250             0.318              3.663
+                     4        0.164         0.250             0.323              3.680
+                     5        0.163         0.250             0.317              3.656
+                     6        0.162         0.249             0.317              3.656
+                     7        0.165         0.250             0.321              3.649
+                     8        0.163         0.250             0.316              3.693
+                     9        0.164         0.251             0.318              3.660
+                    10        0.163         0.250             0.317              3.672
+                    11        0.164         0.250             0.337              3.668
+                    12        0.166         0.254             0.350              3.686
+                    13        0.164         0.250             0.330              3.664
+                    14        0.164         0.250             0.320              3.658
+                    15        0.164         0.250             0.319              3.660
+                    16        0.164         0.252             0.318              3.660
+                    17        0.163         0.252             0.325              3.661
+                    18        0.162         0.250             0.318              3.656
+                    19        0.164         0.249             0.317              3.661
+                    20        0.162         0.250             0.316              3.676
+    average of steps 2..20:       0.164         0.250             0.323              3.666
+    PyTorch takes, against mine:                                   1.97x             14.64x
+
+time_20_steps
+    input: encoded.tolist()                     expected: {1.16778, -3.00131, 2.59447, 1.42206, 0.0767131, 0.542343, -1.52754, -0.720535, 1.61317, 1.31621, -0.23742, 2.63563, -1.77252, -0.668174, -0.947706, 0.0421316, ... (3145728 values)}   actual: {1.16778, -3.00131, 2.59447, 1.42206, 0.0767131, 0.542343, -1.52754, -0.720535, 1.61317, 1.31621, -0.23742, 2.63563, -1.77252, -0.668174, -0.947706, 0.0421316, ... (3145728 values)}   ok  (line 181)
+    input: wte_grad.tolist()                    expected: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (38633472 values)}   actual: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (38633472 values)}   difference: 6.65997e-07 (at most 1e-05)   ok  (line 182)
+    input: wpe_grad.tolist()                    expected: {21.2166, -68.607, -34.1666, -6.19686, -27.7789, -32.0625, -13.0654, 0.945122, -69.1523, -9.67783, -45.7934, -13.3668, 15.7876, -8.36353, 1.94151, 6.63419, ... (786432 values)}   actual: {21.2166, -68.607, -34.1666, -6.19686, -27.7789, -32.0625, -13.0654, 0.945122, -69.1523, -9.67783, -45.7934, -13.3668, 15.7876, -8.36353, 1.94151, 6.63419, ... (786432 values)}   difference: 0 (at most 1e-05)   ok  (line 183)
+
+forward_adds_the_tokens_row_and_the_positions_row
+    input: encoded.tolist()                     expected: {108, 109, 110, 111, 200, 201, 202, 203}   actual: {108, 109, 110, 111, 200, 201, 202, 203}   ok  (line 245)
+
+the_same_token_at_another_position_gets_another_row
+    input: encoded.tolist()                     expected: {104, 105, 106, 107, 204, 205, 206, 207, 304, 305, 306, 307}   actual: {104, 105, 106, 107, 204, 205, 206, 207, 304, 305, 306, 307}   ok  (line 255)
+
+every_row_of_the_batch_starts_again_at_position_0
+    input: encoded.tolist()                     expected: {100, 101, 102, 103, 204, 205, 206, 207, 108, 109, 110, 111, 200, 201, 202, 203}   actual: {100, 101, 102, 103, 204, 205, 206, 207, 108, 109, 110, 111, 200, 201, 202, 203}   ok  (line 268)
+
+backward_adds_a_repeated_tokens_rows_together
+    input: wte_grad.tolist()                    expected: {0, 0, 0, 0, 6, 6, 6, 6, 0, 0, 0, 0}   actual: {0, 0, 0, 0, 6, 6, 6, 6, 0, 0, 0, 0}   ok  (line 281)
+    input: wpe_grad.tolist()                    expected: {1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 0, 0, 0, 0}   actual: {1, 1, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 0, 0, 0, 0}   ok  (line 282)
+
+backward_adds_the_batch_rows_at_each_position
+    input: wte_grad.tolist()                    expected: {12, 14, 16, 18, 4, 5, 6, 7, 8, 9, 10, 11}   actual: {12, 14, 16, 18, 4, 5, 6, 7, 8, 9, 10, 11}   ok  (line 301)
+    input: wpe_grad.tolist()                    expected: {8, 10, 12, 14, 16, 18, 20, 22, 0, 0, 0, 0, 0, 0, 0, 0}   actual: {8, 10, 12, 14, 16, 18, 20, 22, 0, 0, 0, 0, 0, 0, 0, 0}   ok  (line 302)
+
+backward_adds_onto_the_gradients_already_there
+    input: wte_grad.tolist()                    expected: {11, 12, 13, 14, 10, 10, 10, 10, 10, 10, 10, 10}   actual: {11, 12, 13, 14, 10, 10, 10, 10, 10, 10, 10, 10}   ok  (line 314)
+    input: wpe_grad.tolist()                    expected: {11, 12, 13, 14, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}   actual: {11, 12, 13, 14, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10}   ok  (line 315)
+    input: wte_grad[0].tolist()                 expected: {12, 14, 16, 18}   actual: {12, 14, 16, 18}   ok  (line 317)
+    input: wpe_grad[0].tolist()                 expected: {12, 14, 16, 18}   actual: {12, 14, 16, 18}   ok  (line 318)
+
+many_threads_adding_onto_one_row_lose_nothing
+    input: wte_grad[5].tolist()                 expected: {4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, ... (768 values)}   actual: {4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, 4096, ... (768 values)}   ok  (line 334)
+    input: wte_grad.narrow(0, 0, 5).tolist()    expected: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (3840 values)}   actual: {0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, ... (3840 values)}   ok  (line 335)
+    input: wpe_grad.tolist()                    expected: {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, ... (786432 values)}   actual: {4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, ... (786432 values)}   ok  (line 336)
+
+every_kernel_fits_a_block_of_encoder_threads
+    encoder_forward_kernel: 20 registers per thread, largest block 1024 threads, 0 bytes local memory
+    input: attributes.maxThreadsPerBlock >= ENCODER_THREADS expected: true   actual: true   ok  (line 362)
+    input: attributes.localSizeBytes            expected: 0   actual: 0   ok  (line 363)
+    encoder_backward_wte_kernel: 16 registers per thread, largest block 1024 threads, 0 bytes local memory
+    input: attributes.maxThreadsPerBlock >= ENCODER_THREADS expected: true   actual: true   ok  (line 362)
+    input: attributes.localSizeBytes            expected: 0   actual: 0   ok  (line 363)
+    encoder_backward_wpe_kernel: 38 registers per thread, largest block 1024 threads, 0 bytes local memory
+    input: attributes.maxThreadsPerBlock >= ENCODER_THREADS expected: true   actual: true   ok  (line 362)
+    input: attributes.localSizeBytes            expected: 0   actual: 0   ok  (line 363)
+
+time_each_kernel_with_other_block_and_thread_counts
+    time in ms:   blocks   threads   all threads   forward   wte backward   wpe backward   same result
+                    40       128          5120     0.288          0.654          0.087   yes
+                    40       256         10240     0.173          0.359          0.082   yes
+                    40       512         20480     0.158          0.215          0.081   yes
+                    40      1024         40960     0.164          0.188          0.084   yes
+                    80       128         10240     0.174          0.366          0.085   yes
+                    80       256         20480     0.158          0.212          0.081   yes
+                    80       512         40960     0.161          0.179          0.082   yes
+                    80      1024         81920     0.161          0.180          0.083   yes
+                   160       128         20480     0.159          0.214          0.081   yes
+                   160       256         40960     0.163          0.176          0.082   yes
+                   160       512         81920     0.159          0.177          0.082   yes
+                   160      1024        163840     0.158          0.176          0.082   yes
+                   320       128         40960     0.163          0.178          0.082   yes
+                   320       256         81920     0.160          0.174          0.081   yes
+                   320       512        163840     0.156          0.167          0.079   yes
+                   320      1024        327680     0.157          0.166          0.078   yes
+                   512       128         65536     0.153          0.173          0.079   yes
+                   512       256        131072     0.158          0.167          0.079   yes
+                   512       512        262144     0.159          0.165          0.078   yes
+                   512      1024        524288     0.163          0.163          0.079   yes           <- what encoder.cuh launches
+                  1024       128        131072     0.157          0.170          0.079   yes
+                  1024       256        262144     0.159          0.162          0.078   yes
+                  1024       512        524288     0.158          0.160          0.079   yes
+                  1024      1024       1048576     0.162          0.158          0.081   yes
+                  2048       128        262144     0.160          0.165          0.078   yes
+                  2048       256        524288     0.160          0.160          0.078   yes
+                  2048       512       1048576     0.158          0.157          0.082   yes
+                  2048      1024       2097152     0.169          0.157          0.088   yes
+                  4096       128        524288     0.160          0.162          0.079   yes
+                  4096       256       1048576     0.160          0.157          0.081   yes
+                  4096       512       2097152     0.163          0.157          0.088   yes
+                  4096      1024       4194304     0.186          0.162          0.103   yes
+    fastest forward        512 blocks x  128 threads: 0.153 ms
+    fastest wte backward  4096 blocks x  512 threads: 0.157 ms
+    fastest wpe backward   320 blocks x 1024 threads: 0.078 ms
+    input: launches_with_the_same_result        expected: 32   actual: 32   ok  (line 483)
+
+all tests passed

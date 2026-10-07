@@ -1,0 +1,86 @@
+Batch B: 5 runs of tests/test_encoder.cu on Google Colab (Tesla T4), with the first version of part 5:
+the wte backward with float loads (encoder.cuh at that time) against an experimental copy with float4
+loads, and the forward with 256 to 1024 blocks of 128 threads. No warm-up before the timing loops yet.
+Only this summary and run 1's part 5 output were kept; the code is commit a1f1b7b plus that part 5,
+which became commit e84ce51 (with the float4 kernel moved into encoder.cuh and a warm-up added).
+
+The summary, as printed (SM clock from nvidia-smi every 200 ms during each run):
+
+run 1: SM clock median 795 MHz (min 300), max temp 42 °C, part 4 wte backward at 40 x 128: 0.607 ms
+    slow-down at 5,120 threads against 512 x 1024:   float loads 2.18x   float4 loads 1.02x
+    slow-down at 10,240 threads (40 x 256):           float loads 1.24x   float4 loads 1.01x
+
+run 2: SM clock median 990 MHz (min 825), max temp 44 °C, part 4 wte backward at 40 x 128: 0.477 ms
+    slow-down at 5,120 threads against 512 x 1024:   float loads 2.20x   float4 loads 1.01x
+    slow-down at 10,240 threads (40 x 256):           float loads 1.26x   float4 loads 0.99x
+
+run 3: SM clock median 1110 MHz (min 915), max temp 46 °C, part 4 wte backward at 40 x 128: 0.444 ms
+    slow-down at 5,120 threads against 512 x 1024:   float loads 2.21x   float4 loads 1.03x
+    slow-down at 10,240 threads (40 x 256):           float loads 1.28x   float4 loads 1.02x
+
+run 4: SM clock median 810 MHz (min 585), max temp 47 °C, part 4 wte backward at 40 x 128: 0.543 ms
+    slow-down at 5,120 threads against 512 x 1024:   float loads 2.21x   float4 loads 1.03x
+    slow-down at 10,240 threads (40 x 256):           float loads 1.26x   float4 loads 1.01x
+
+run 5: SM clock median 675 MHz (min 585), max temp 47 °C, part 4 wte backward at 40 x 128: 0.658 ms
+    slow-down at 5,120 threads against 512 x 1024:   float loads 2.18x   float4 loads 1.02x
+    slow-down at 10,240 threads (40 x 256):           float loads 1.24x   float4 loads 1.00x
+
+Run 1's part 5, as printed:
+
+time_wte_backward_with_float4_loads
+    time in ms:   blocks   threads   all threads   float loads   float4 loads   same result
+                    40       128          5120         0.355          0.167   yes
+                    40       256         10240         0.202          0.166   yes
+                    40       512         20480         0.179          0.168   yes
+                    40      1024         40960         0.180          0.170   yes
+                    80       128         10240         0.204          0.168   yes
+                    80       256         20480         0.175          0.167   yes
+                    80       512         40960         0.173          0.167   yes
+                    80      1024         81920         0.174          0.166   yes
+                   160       128         20480         0.179          0.169   yes
+                   160       256         40960         0.173          0.168   yes
+                   160       512         81920         0.170          0.166   yes
+                   160      1024        163840         0.168          0.168   yes
+                   320       128         40960         0.174          0.169   yes
+                   320       256         81920         0.168          0.166   yes
+                   320       512        163840         0.166          0.166   yes
+                   320      1024        327680         0.164          0.165   yes
+                   512       128         65536         0.174          0.166   yes
+                   512       256        131072         0.167          0.165   yes
+                   512       512        262144         0.164          0.165   yes
+                   512      1024        524288         0.163          0.164   yes
+                  1024       128        131072         0.170          0.165   yes
+                  1024       256        262144         0.163          0.164   yes
+                  1024       512        524288         0.159          0.163   yes
+                  1024      1024       1048576         0.158          0.163   yes
+                  2048       128        262144         0.165          0.164   yes
+                  2048       256        524288         0.159          0.163   yes
+                  2048       512       1048576         0.157          0.164   yes
+                  2048      1024       2097152         0.159          0.174   yes
+                  4096       128        524288         0.161          0.163   yes
+                  4096       256       1048576         0.156          0.165   yes
+                  4096       512       2097152         0.155          0.170   yes
+                  4096      1024       4194304         0.164          0.189   yes
+    slow-down at 5,120 threads against 512 x 1024:   float loads 2.18x   float4 loads 1.02x
+    slow-down at 10,240 threads (40 x 256):           float loads 1.24x   float4 loads 1.01x
+    input: launches_with_the_same_result        expected: 32   actual: 32   ok  (line 583)
+
+time_forward_with_blocks_of_128_around_512
+    time in ms:   blocks   threads   jobs per thread   forward   512 x 1024 just before   ratio
+                   256       128             24.00     0.161                    0.161   1.004
+                   320       128             19.20     0.163                    0.160   1.014
+                   384       128             16.00     0.158                    0.161   0.980
+                   448       128             13.71     0.160                    0.162   0.985
+                   512       128             12.00     0.154                    0.161   0.956
+                   576       128             10.67     0.158                    0.160   0.984
+                   640       128              9.60     0.161                    0.160   1.004
+                   704       128              8.73     0.154                    0.160   0.961
+                   768       128              8.00     0.141                    0.161   0.879
+                   832       128              7.38     0.145                    0.161   0.903
+                   896       128              6.86     0.157                    0.161   0.981
+                   960       128              6.40     0.156                    0.160   0.973
+                  1024       128              6.00     0.158                    0.160   0.986
+    input: launches_with_the_same_result        expected: 13   actual: 13   ok  (line 635)
+
+all tests passed

@@ -1,0 +1,65 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 320" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="320" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">The forward with blocks of 128 threads, against 512 x 1024 (batch C)</text>
+  <text x="20" y="44" fill="#495057">Each launch timed right after 512 x 1024. Dot: median of 5 runs; bar: lowest to highest. Lower is faster.</text>
+  <g stroke="#e9ecef">
+    <line x1="80" y1="260.0" x2="720" y2="260.0"/>
+    <line x1="80" y1="212.5" x2="720" y2="212.5"/>
+    <line x1="80" y1="165.0" x2="720" y2="165.0"/>
+    <line x1="80" y1="117.5" x2="720" y2="117.5"/>
+    <line x1="80" y1="70.0" x2="720" y2="70.0"/>
+  </g>
+  <line x1="80" y1="117.5" x2="720" y2="117.5" stroke="#495057" stroke-dasharray="4,3"/>
+  <g font-size="11" fill="#868e96" text-anchor="end">
+    <text x="74" y="264.0">0.85</text>
+    <text x="74" y="216.5">0.90</text>
+    <text x="74" y="169.0">0.95</text>
+    <text x="74" y="121.5">1.00</text>
+    <text x="74" y="74.0">1.05</text>
+  </g>
+  <g font-size="11" fill="#868e96" text-anchor="middle">
+    <text x="80.0" y="278">256</text>
+    <text x="133.3" y="278">320</text>
+    <text x="186.7" y="278">384</text>
+    <text x="240.0" y="278">448</text>
+    <text x="293.3" y="278">512</text>
+    <text x="346.7" y="278">576</text>
+    <text x="400.0" y="278">640</text>
+    <text x="453.3" y="278">704</text>
+    <text x="506.7" y="278">768</text>
+    <text x="560.0" y="278">832</text>
+    <text x="613.3" y="278">896</text>
+    <text x="666.7" y="278">960</text>
+    <text x="720.0" y="278">1024</text>
+  </g>
+  <text x="400.0" y="298" font-size="12" fill="#495057" text-anchor="middle">blocks of 128 threads</text>
+  <line x1="80.0" y1="120.4" x2="80.0" y2="105.2" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="80.0" cy="112.8" r="4" fill="#1c7ed6"><title>256 x 128: median 1.005, 0.997-1.013</title></circle>
+  <line x1="133.3" y1="107.1" x2="133.3" y2="97.6" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="133.3" cy="102.3" r="4" fill="#1c7ed6"><title>320 x 128: median 1.016, 1.011-1.021</title></circle>
+  <line x1="186.7" y1="133.7" x2="186.7" y2="126.1" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="186.7" cy="132.7" r="4" fill="#1c7ed6"><title>384 x 128: median 0.984, 0.983-0.991</title></circle>
+  <line x1="240.0" y1="128.9" x2="240.0" y2="123.2" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="240.0" cy="124.2" r="4" fill="#1c7ed6"><title>448 x 128: median 0.993, 0.988-0.994</title></circle>
+  <line x1="293.3" y1="164.1" x2="293.3" y2="157.4" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="293.3" cy="160.3" r="4" fill="#1c7ed6"><title>512 x 128: median 0.955, 0.951-0.958</title></circle>
+  <line x1="346.7" y1="145.1" x2="346.7" y2="133.7" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="346.7" cy="135.6" r="4" fill="#1c7ed6"><title>576 x 128: median 0.981, 0.971-0.983</title></circle>
+  <line x1="400.0" y1="118.5" x2="400.0" y2="113.7" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="400.0" cy="118.5" r="4" fill="#1c7ed6"><title>640 x 128: median 0.999, 0.999-1.004</title></circle>
+  <line x1="453.3" y1="158.4" x2="453.3" y2="150.8" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="453.3" cy="157.4" r="4" fill="#1c7ed6"><title>704 x 128: median 0.958, 0.957-0.965</title></circle>
+  <line x1="506.7" y1="234.3" x2="506.7" y2="220.1" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="506.7" cy="230.5" r="4" fill="#1c7ed6"><title>768 x 128: median 0.881, 0.877-0.892</title></circle>
+  <line x1="560.0" y1="215.3" x2="560.0" y2="204.9" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="560.0" cy="209.6" r="4" fill="#1c7ed6"><title>832 x 128: median 0.903, 0.897-0.908</title></circle>
+  <line x1="613.3" y1="141.3" x2="613.3" y2="133.7" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="613.3" cy="136.5" r="4" fill="#1c7ed6"><title>896 x 128: median 0.980, 0.975-0.983</title></circle>
+  <line x1="666.7" y1="162.2" x2="666.7" y2="138.4" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="666.7" cy="141.3" r="4" fill="#1c7ed6"><title>960 x 128: median 0.975, 0.953-0.978</title></circle>
+  <line x1="720.0" y1="136.5" x2="720.0" y2="128.0" stroke="#1c7ed6" stroke-width="1.6"/>
+  <circle cx="720.0" cy="132.7" r="4" fill="#1c7ed6"><title>1024 x 128: median 0.984, 0.980-0.989</title></circle>
+  <polyline fill="none" stroke="#1c7ed6" stroke-opacity="0.4" points="80.0,112.8 133.3,102.3 186.7,132.7 240.0,124.2 293.3,160.3 346.7,135.6 400.0,118.5 453.3,157.4 506.7,230.5 560.0,209.6 613.3,136.5 666.7,141.3 720.0,132.7"/>
+  <text x="514.7" y="246.5" font-size="11" fill="#212529">768 x 128: 0.881 (0.140-0.144 ms)</text>
+  <text x="20" y="310" font-size="11" fill="#868e96">1.00 is the 512 x 1024 launch of encoder.cuh (0.160 ms). Not a smooth dip: 512, 704, 768 and 832 blocks stand out.</text>
+</svg>

@@ -1,0 +1,45 @@
+The loads and atomics of the encoder kernels, from the test of commit e84ce51 built on Google Colab
+(Tesla T4) with the command in the post (no -arch flag):
+
+    cuobjdump -lelf test_encoder
+    cuobjdump -sass test_encoder | grep -E "Function|LDG|RED|ATOM"
+
+LDG.E.128 is a 16-byte (float4) load, LDG.E without .128 a 4-byte one. RED is an atomic add whose result
+is not used: the thread sends it and does not wait. The program holds machine code for sm_75, the T4,
+so nothing is compiled when it starts.
+
+ELF file    1: test_encoder.1.sm_75.cubin
+ELF file    2: test_encoder.2.sm_75.cubin
+        Function : _Z33encoder_backward_wte_float_kernelPfPKfPKimmm
+        /*0440*/                   LDG.E.SYS R7, [R6] ;                                            /* 0x0000000006077381 */
+        /*0470*/                   LDG.E.SYS R9, [R8] ;                                            /* 0x0000000008097381 */
+        /*0540*/                   RED.E.ADD.F32.FTZ.RN.STRONG.GPU [R10], R9 ;                     /* 0x000000090a00798e */
+        Function : _Z27encoder_backward_wpe_kernelP6float4PKS_mmm
+        /*0350*/                   LDG.E.128.SYS R4, [R4] ;                                        /* 0x0000000004047381 */
+        /*0380*/                   LDG.E.128.SYS R8, [R8] ;                                        /* 0x0000000008087381 */
+        /*03a0*/                   LDG.E.128.SYS R12, [R12] ;                                      /* 0x000000000c0c7381 */
+        /*03b0*/                   LDG.E.128.SYS R16, [R32] ;                                      /* 0x0000000020107381 */
+        /*05e0*/                   LDG.E.128.SYS R4, [R8] ;                                        /* 0x0000000008047381 */
+        /*06e0*/                   LDG.E.128.SYS R4, [R4] ;                                        /* 0x0000000004047381 */
+        /*06f0*/               @P1 LDG.E.128.SYS R8, [R8] ;                                        /* 0x0000000008081381 */
+        /*07a0*/                   LDG.E.128.SYS R4, [R8] ;                                        /* 0x0000000004047381 */
+        /*0880*/                   LDG.E.128.SYS R8, [R4] ;                                        /* 0x0000000004087381 */
+        Function : _Z27encoder_backward_wte_kernelPfPK6float4PKimmm
+        /*0460*/                   LDG.E.SYS R7, [R6] ;                                            /* 0x0000000006077381 */
+        /*0490*/                   LDG.E.128.SYS R12, [R8] ;                                       /* 0x00000000080c7381 */
+        /*0560*/                   RED.E.ADD.F32.FTZ.RN.STRONG.GPU [R4], R12 ;                     /* 0x0000000c0400798e */
+        /*0580*/                   RED.E.ADD.F32.FTZ.RN.STRONG.GPU [R4+0x4], R13 ;                 /* 0x0000040d0400798e */
+        /*0590*/                   RED.E.ADD.F32.FTZ.RN.STRONG.GPU [R4+0x8], R14 ;                 /* 0x0000080e0400798e */
+        /*05a0*/                   RED.E.ADD.F32.FTZ.RN.STRONG.GPU [R4+0xc], R15 ;                 /* 0x00000c0f0400798e */
+        Function : _Z22encoder_forward_kernelP6float4PKiPKS_S4_mmm
+        /*0660*/                   LDG.E.SYS R11, [R10] ;                                          /* 0x000000000a0b7381 */
+        /*0750*/                   LDG.E.128.SYS R12, [R12] ;                                      /* 0x000000000c0c7381 */
+        /*0760*/                   LDG.E.128.SYS R8, [R6] ;                                        /* 0x0000000006087381 */
+        Function : _Z18tensor_fill_kernelPjmj
+
+Read per kernel, one job of the loop:
+  encoder_backward_wte_float_kernel  the token id and 4 bytes of encoded_grad, asked for together; one RED
+  encoder_backward_wte_kernel        the token id and 16 bytes of encoded_grad, asked for together; four RED
+  encoder_backward_wpe_kernel        four 16-byte loads of encoded_grad back to back (the loop over b,
+                                     unrolled by 4); the remainder loop and the old float4 of wpe_grad after
+  encoder_forward_kernel             the token id alone; when it is back, 16 bytes of wte and 16 of wpe together
