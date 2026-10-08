@@ -1,0 +1,87 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+    <marker id="arrow-red" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#e03131"/>
+    </marker>
+    <marker id="arrow-blue" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#1971c2"/>
+    </marker>
+  </defs>
+  <rect width="760" height="420" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">How a value moves between the memories</text>
+  <text x="20" y="44" fill="#495057">One line per kind of move. A dot: the value passes this level and a copy may stay there.</text>
+
+  <!-- groups -->
+  <text x="340" y="66" text-anchor="middle" font-size="11" fill="#495057">inside each SM</text>
+  <line x1="182" y1="71" x2="498" y2="71" stroke="#adb5bd"/>
+  <text x="560" y="66" text-anchor="middle" font-size="11" fill="#495057">the chip</text>
+  <text x="680" y="66" text-anchor="middle" font-size="11" fill="#495057">the card</text>
+
+  <!-- column heads -->
+  <rect x="182" y="76" width="96" height="28" fill="#ffc078" stroke="#495057"/>
+  <text x="230" y="95" text-anchor="middle" font-size="12" fill="#212529">registers</text>
+  <rect x="292" y="76" width="96" height="28" fill="#ffd8a8" stroke="#495057"/>
+  <text x="340" y="95" text-anchor="middle" font-size="12" fill="#212529">shared memory</text>
+  <rect x="402" y="76" width="96" height="28" fill="#ffe8cc" stroke="#495057"/>
+  <text x="450" y="95" text-anchor="middle" font-size="12" fill="#212529">L1</text>
+  <rect x="512" y="76" width="96" height="28" fill="#e7f5ff" stroke="#495057"/>
+  <text x="560" y="95" text-anchor="middle" font-size="12" fill="#212529">L2</text>
+  <rect x="632" y="76" width="96" height="28" fill="#f1f3f5" stroke="#495057"/>
+  <text x="680" y="95" text-anchor="middle" font-size="12" fill="#212529">DRAM</text>
+
+  <!-- guides -->
+  <line x1="230" y1="104" x2="230" y2="404" stroke="#e9ecef"/>
+  <line x1="340" y1="104" x2="340" y2="404" stroke="#e9ecef"/>
+  <line x1="450" y1="104" x2="450" y2="404" stroke="#e9ecef"/>
+  <line x1="560" y1="104" x2="560" y2="404" stroke="#e9ecef"/>
+  <line x1="680" y1="104" x2="680" y2="404" stroke="#e9ecef"/>
+
+  <!-- 1. load -->
+  <text x="20" y="134" font-weight="600" fill="#212529">Load</text>
+  <text x="20" y="150" font-size="11" font-family="Consolas, Menlo, monospace" fill="#495057">x = wte[i];</text>
+  <line x1="680" y1="140" x2="238" y2="140" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <circle cx="560" cy="140" r="4" fill="#495057"/>
+  <circle cx="450" cy="140" r="4" fill="#495057"/>
+  <text x="455" y="130" text-anchor="middle" font-size="10" fill="#495057">the warp's 32 asks, combined</text>
+
+  <!-- 2. store -->
+  <text x="20" y="184" font-weight="600" fill="#212529">Store</text>
+  <text x="20" y="200" font-size="11" font-family="Consolas, Menlo, monospace" fill="#495057">out[i] = x;</text>
+  <line x1="230" y1="190" x2="552" y2="190" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <circle cx="450" cy="190" r="4" fill="#ffffff" stroke="#495057"/>
+  <text x="450" y="180" text-anchor="middle" font-size="10" fill="#495057">passes on</text>
+  <line x1="568" y1="190" x2="672" y2="190" stroke="#495057" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow)"/>
+  <text x="620" y="180" text-anchor="middle" font-size="10" fill="#495057">later</text>
+
+  <!-- 3. atomic add -->
+  <text x="20" y="234" font-weight="600" fill="#1971c2">atomicAdd (RED)</text>
+  <text x="20" y="250" font-size="11" font-family="Consolas, Menlo, monospace" fill="#495057">atomicAdd(&amp;g[i], x);</text>
+  <line x1="230" y1="240" x2="552" y2="240" stroke="#1971c2" stroke-width="1.5" marker-end="url(#arrow-blue)"/>
+  <text x="450" y="230" text-anchor="middle" font-size="10" fill="#1971c2">skips L1</text>
+  <circle cx="560" cy="240" r="6" fill="#1971c2"/>
+  <text x="572" y="256" font-size="10" fill="#1971c2">the add happens here</text>
+  <line x1="568" y1="240" x2="672" y2="240" stroke="#1971c2" stroke-width="1.5" stroke-dasharray="4 3" marker-end="url(#arrow-blue)"/>
+
+  <!-- 4. spill -->
+  <text x="20" y="284" font-weight="600" fill="#e03131">Spill</text>
+  <text x="20" y="300" font-size="11" fill="#495057">the compiler's choice</text>
+  <line x1="238" y1="290" x2="672" y2="290" stroke="#e03131" stroke-width="1.5" stroke-dasharray="6 3" marker-start="url(#arrow-red)" marker-end="url(#arrow-red)"/>
+  <circle cx="450" cy="290" r="4" fill="#e03131"/>
+  <circle cx="560" cy="290" r="4" fill="#e03131"/>
+  <text x="680" y="310" text-anchor="middle" font-size="10" fill="#e03131">local memory</text>
+
+  <!-- 5. shared memory -->
+  <text x="20" y="334" font-weight="600" fill="#212529">Shared memory</text>
+  <text x="20" y="350" font-size="11" font-family="Consolas, Menlo, monospace" fill="#495057">tile[k] = x;</text>
+  <line x1="238" y1="340" x2="332" y2="340" stroke="#495057" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="400" y="344" font-size="11" fill="#495057">written and read by the threads of one block</text>
+
+  <!-- 6. shuffle -->
+  <text x="20" y="384" font-weight="600" fill="#212529">Shuffle</text>
+  <text x="20" y="400" font-size="11" font-family="Consolas, Menlo, monospace" fill="#495057">__shfl_xor_sync(…)</text>
+  <path d="M 212 392 C 212 368, 248 368, 248 388" fill="none" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="290" y="394" font-size="11" fill="#495057">thread to thread inside one warp, no memory at all</text>
+</svg>

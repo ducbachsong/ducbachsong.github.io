@@ -1,0 +1,101 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 590" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+  </defs>
+  <rect width="760" height="590" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">The memories of a Tesla T4: where each one is, and who can see it</text>
+  <text x="20" y="44" fill="#495057">Sizes for compute capability 7.5. Orange: in each SM · blue: one per chip · grey: on the card.</text>
+
+  <!-- the GPU chip -->
+  <rect x="20" y="62" width="720" height="330" fill="#f8f9fa" stroke="#495057"/>
+  <text x="32" y="80" font-weight="600" fill="#212529">GPU chip</text>
+
+  <!-- SM 0 -->
+  <rect x="40" y="90" width="470" height="236" fill="#fff4e6" stroke="#495057"/>
+  <text x="52" y="108" font-weight="600" fill="#212529">SM 0</text>
+
+  <!-- register file -->
+  <rect x="52" y="116" width="446" height="84" fill="#ffc078" stroke="#495057"/>
+  <text x="62" y="134" font-weight="600" fill="#212529">Register file: 65,536 registers of 32 bits = 256 KB</text>
+  <text x="62" y="151" font-size="12" fill="#495057">handed out to the threads on the SM; a thread sees only its own</text>
+  <rect x="62" y="160" width="426" height="30" fill="#ffe8cc" stroke="#495057"/>
+  <text x="70" y="179" font-size="12" fill="#212529">warp 0</text>
+  <rect x="120" y="166" width="34" height="18" fill="#ffffff" stroke="#495057"/>
+  <text x="137" y="179" font-size="11" text-anchor="middle" fill="#212529">t0</text>
+  <rect x="160" y="166" width="34" height="18" fill="#ffffff" stroke="#495057"/>
+  <text x="177" y="179" font-size="11" text-anchor="middle" fill="#212529">t1</text>
+  <rect x="200" y="166" width="34" height="18" fill="#ffffff" stroke="#495057"/>
+  <text x="217" y="179" font-size="11" text-anchor="middle" fill="#212529">t2</text>
+  <text x="262" y="179" font-size="12" text-anchor="middle" fill="#495057">…</text>
+  <rect x="290" y="166" width="34" height="18" fill="#ffffff" stroke="#495057"/>
+  <text x="307" y="179" font-size="11" text-anchor="middle" fill="#212529">t29</text>
+  <rect x="330" y="166" width="34" height="18" fill="#ffffff" stroke="#495057"/>
+  <text x="347" y="179" font-size="11" text-anchor="middle" fill="#212529">t30</text>
+  <rect x="370" y="166" width="34" height="18" fill="#ffffff" stroke="#495057"/>
+  <text x="387" y="179" font-size="11" text-anchor="middle" fill="#212529">t31</text>
+  <text x="414" y="179" font-size="11" fill="#495057">32 threads</text>
+
+  <!-- the 96 KB: shared memory and L1 -->
+  <rect x="52" y="208" width="218" height="56" fill="#ffd8a8" stroke="#495057"/>
+  <text x="62" y="228" font-weight="600" fill="#212529">Shared memory</text>
+  <text x="62" y="245" font-size="12" fill="#212529">32 or 64 KB, a part per block</text>
+  <text x="62" y="259" font-size="11" fill="#495057">you decide what goes in</text>
+  <rect x="278" y="208" width="220" height="56" fill="#ffe8cc" stroke="#495057"/>
+  <text x="288" y="228" font-weight="600" fill="#212529">L1 cache</text>
+  <text x="288" y="245" font-size="12" fill="#212529">the other 64 or 32 KB</text>
+  <text x="288" y="259" font-size="11" fill="#495057">the hardware decides what goes in</text>
+  <text x="275" y="278" font-size="11" text-anchor="middle" fill="#495057">the same 96 KB of on-chip memory, split two ways</text>
+
+  <!-- constant cache and the rest -->
+  <rect x="52" y="286" width="218" height="30" fill="#ffffff" stroke="#495057"/>
+  <text x="62" y="306" font-size="12" fill="#212529">Constant cache: 8 KB</text>
+  <rect x="278" y="286" width="220" height="30" fill="#ffffff" stroke="#495057"/>
+  <text x="288" y="306" font-size="12" fill="#495057">4 warp schedulers · 64 float units</text>
+
+  <text x="535" y="212" text-anchor="middle" font-size="15" fill="#868e96">…</text>
+
+  <!-- SM 39 -->
+  <rect x="560" y="90" width="160" height="236" fill="#fff4e6" stroke="#495057"/>
+  <text x="572" y="108" font-weight="600" fill="#212529">SM 39</text>
+  <rect x="572" y="116" width="136" height="84" fill="#ffc078" stroke="#495057"/>
+  <text x="582" y="162" font-size="12" fill="#212529">register file</text>
+  <rect x="572" y="208" width="136" height="56" fill="#ffd8a8" stroke="#495057"/>
+  <text x="582" y="240" font-size="12" fill="#212529">shared + L1</text>
+  <rect x="572" y="286" width="136" height="30" fill="#ffffff" stroke="#495057"/>
+  <text x="582" y="306" font-size="12" fill="#212529">constant cache</text>
+  <text x="640" y="342" font-size="11" text-anchor="middle" fill="#495057">SM 1 to SM 38: the same</text>
+
+  <!-- L2 -->
+  <rect x="40" y="348" width="680" height="34" fill="#e7f5ff" stroke="#495057"/>
+  <text x="380" y="370" text-anchor="middle" font-size="12" fill="#212529"><tspan font-weight="600">L2 cache: 4 MB</tspan>, one for the whole chip, seen by all 40 SMs · the atomic adds happen here</text>
+
+  <!-- the road -->
+  <line x1="300" y1="394" x2="300" y2="430" stroke="#495057" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="380" y1="394" x2="380" y2="430" stroke="#495057" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <line x1="460" y1="394" x2="460" y2="430" stroke="#495057" stroke-width="1.5" marker-start="url(#arrow)" marker-end="url(#arrow)"/>
+  <text x="480" y="417" font-size="12" fill="#495057">all DRAM traffic passes L2 · 320 GB/s</text>
+
+  <!-- DRAM -->
+  <rect x="20" y="434" width="720" height="140" fill="#f1f3f5" stroke="#495057"/>
+  <text x="32" y="452" font-weight="600" fill="#212529">GPU memory (DRAM): 16 GB of GDDR6, on separate chips on the card</text>
+  <rect x="40" y="462" width="300" height="100" fill="#ffffff" stroke="#495057"/>
+  <text x="52" y="482" font-weight="600" fill="#212529">Global memory</text>
+  <text x="52" y="500" font-size="11" fill="#212529">your tensors: wte, wpe, encoded, … (cudaMalloc)</text>
+  <text x="52" y="516" font-size="11" fill="#495057">seen by every thread of every block;</text>
+  <text x="52" y="531" font-size="11" fill="#495057">the CPU copies in and out</text>
+  <text x="52" y="551" font-size="11" fill="#495057">cached in L1 and L2</text>
+  <rect x="352" y="462" width="180" height="100" fill="#ffffff" stroke="#495057"/>
+  <text x="364" y="482" font-weight="600" fill="#212529">Local memory</text>
+  <text x="364" y="500" font-size="11" fill="#212529">each thread's own space</text>
+  <text x="364" y="516" font-size="11" fill="#495057">spills, arrays[i], stack;</text>
+  <text x="364" y="531" font-size="11" fill="#495057">the compiler puts them here</text>
+  <text x="364" y="551" font-size="11" fill="#495057">cached in L1 and L2</text>
+  <rect x="544" y="462" width="176" height="100" fill="#ffffff" stroke="#495057"/>
+  <text x="556" y="482" font-size="12" font-weight="600" fill="#212529">Constant memory: 64 KB</text>
+  <text x="556" y="500" font-size="11" fill="#212529">__constant__ variables</text>
+  <text x="556" y="516" font-size="11" fill="#212529">and kernel parameters</text>
+  <text x="556" y="531" font-size="11" fill="#495057">read-only in a kernel</text>
+  <text x="556" y="551" font-size="11" fill="#495057">cached in each SM</text>
+</svg>
