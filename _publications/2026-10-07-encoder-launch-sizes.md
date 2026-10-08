@@ -327,6 +327,20 @@ which made all its ratios fall below 1 (the log shows it).*
 that fits. At 512 × 1,024 both versions take the same time (0.161–0.166 against 0.163–0.167 ms), so
 **`encoder.cuh` now uses the float4 version** (commit `e84ce51`).
 
+**What the float4 load changes, and what it does not.** The float4 version does not add four numbers
+at once. A T4 has no `atomicAdd` on a `float4` (Table 1), and the compiled code shows four separate
+`RED`s per job, one per float, at `[R4]`, `[R4+0x4]`, `[R4+0x8]` and `[R4+0xc]` ([Appendix
+A](#appendix-a-raw-logs)). Over the whole kernel both versions send the same 3,145,728 `RED`s
+(3,145,728 jobs × 1 against 786,432 jobs × 4), the L2 cache carries out every one of them, and two
+that land on the same number of `wte_grad` are applied one after the other in either version. The
+bytes read do not change either: both read the same 12.6 MB of `encoded_grad`. What changes is how
+much each thread asks for before it has to wait: 16 bytes of `encoded_grad` in one load instead of 4,
+about 20 bytes in flight instead of 8 (Table 8). So the same 5,120 threads keep 2.5 times as many
+bytes on their way, and memory stays busy with fewer threads. With enough threads, memory is busy
+either way, which is why the two take the same time at 512 × 1,024. The forward is no different on
+the adding side: a T4 has no instruction that adds two `float4`s, so its `make_float4(a.x + b.x, …)`
+is four float additions as well, and what it gains from `float4` is also the load.
+
 **The model's size was wrong, its direction right.** With the first estimate of 160 KB needed, the
 model predicted 3.9x for float loads at 5,120 threads (160 KB / (5,120 × 8 B) = 160 / 41) and about
 1.6x for float4 loads (160 / 102). The measured 2.2–2.7x and 1.02–1.06x both fit a need of about
