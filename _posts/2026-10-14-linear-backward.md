@@ -1,8 +1,10 @@
 ---
-title: "Linear backward, broken down and rebuilt: five chain-rule steps and three matrix products"
+title: "Linear backward, broken down and rebuilt: three chain-rule steps and three matrix products"
 date: 2026-10-14
+modified: 2026-10-14
+version: 2
 permalink: /posts/linear-backward/
-excerpt: "The backward pass of a linear layer is usually given as three lines: dx = dy · W, dW = dyᵀ · x, db = the column sums of dy. This note takes it apart into five small steps, one per forward step, each derived with nothing more than the chain rule, and works two rows of 4 numbers through all of them. Then it puts the steps back together, in five moves, into the three matrix products a GPU kernel runs, and shows where each ᵀ comes from: from which index a sum runs over. Two checks follow from the formulas, and every number is checked against PyTorch."
+excerpt: "The backward pass of a linear layer is usually given as three lines: dx = dy · W, dW = dyᵀ · x, db = the column sums of dy. This note takes it apart into three small steps, one for each input of the forward formula, each derived with nothing more than the chain rule, and works two rows of 4 numbers through all of them. The layer has the shape of LayerNorm's last step, with one difference: the gradient of the input is a sum. Then it puts the steps back together, in two moves, into the three matrix products a GPU kernel runs, and shows where each ᵀ comes from: from which index a sum runs over. Two checks follow from the formulas, and every number is checked against PyTorch."
 tags:
   - linear-layer
   - backpropagation
@@ -19,9 +21,10 @@ $$
 
 Those lines are correct, and they are what the kernel in my GPT-2 trainer [1] runs, but they hide two
 things: where the sums come from, and why the $$\top$$ sits where it does. This note **breaks them
-down** into five small steps, B1 to B5, one for each forward step, each derived with nothing more than
-the chain rule. Then it **rebuilds** the three lines from those steps, in five moves, C1 to C5. One
-example of 2 rows and 4 numbers goes through every step, so each formula has a number next to it.
+down** into three small steps, B1 to B3, one for each input of the forward formula, each derived with
+nothing more than the chain rule. Then it **rebuilds** the three lines from those steps, in two moves,
+C1 and C2. One example of 2 rows and 4 numbers goes through every step, so each formula has a number
+next to it.
 
 **Sources.** The derivation is worked out by hand, with the same three rules as the
 [note on LayerNorm's backward](/posts/layer-norm-backward/) [2]. Every number in it was checked against
@@ -33,21 +36,20 @@ lines are the ones llm.c's C code runs [5].
 
 ## 1. The forward pass
 
-### 1.1 Three steps for one row
+### 1.1 One step for one row
 
 A linear layer works on one row at a time: the $$n_\text{in}$$ numbers of one token. Every row is
-multiplied by the same weight, and rows never mix. For one row:
+multiplied by the same weight, and rows never mix. For one row, there is one step:
 
 $$
-\begin{aligned}
-&\text{F1:} && p_{j,i} = x_i\, W_{j,i} && \text{each input times its weight to each output: } n_\text{out} \times n_\text{in} \text{ products} \\
-&\text{F2:} && z_j = \sum_{i=1}^{n_\text{in}} p_{j,i} && \text{the dot product of } x \text{ with row } j \text{ of } W \\
-&\text{F3:} && y_j = z_j + b_j && \text{each output column's own bias}
-\end{aligned}
+\text{F1:} \qquad y_j = \sum_{i=1}^{n_\text{in}} x_i\, W_{j,i} + b_j
+                     = x_1 W_{j,1} + x_2 W_{j,2} + \cdots + x_{n_\text{in}} W_{j,n_\text{in}} + b_j
 $$
 
-Written as one line, $$y_j = \sum_i x_i\, W_{j,i} + b_j$$. The kernel never stores $$p$$ or $$z$$:
-they are names for the steps, so that each backward step has one small forward step to undo.
+Output $$j$$ is the dot product of the row $$x$$ with row $$j$$ of $$W$$, plus the bias of column
+$$j$$. This has the shape of LayerNorm's last step, $$y_i = \gamma_i\, \hat{x}_i + \beta_i$$ [2]: a
+weight times the input, plus a bias. The one difference is the sum over $$i$$: each output mixes all the
+inputs of its row.
 
 ### 1.2 The names
 
@@ -61,8 +63,7 @@ they are names for the steps, so that each backward step has one small forward s
 | $$x$$ | input: one per value | `{4, 1024, 768}` |
 | $$W$$ | weight: row $$j$$ holds the $$n_\text{in}$$ weights of output $$j$$; shared by all rows | `{2304, 768}` |
 | $$b$$ | bias: one per output column, shared by all rows | `{2304}` |
-| $$p$$ | the products: $$n_\text{out} \times n_\text{in}$$ per row | `{4, 1024, 2304, 768}`, never stored |
-| $$z, y$$ | dot product and output: one per value | `{4, 1024, 2304}` |
+| $$y$$ | output: one per value | `{4, 1024, 2304}` |
 | $$L$$ | the loss: one number, how wrong the model is | 1 |
 | $$\partial$$ | partial derivative: change one variable, hold all others fixed | — |
 | $$da$$ | short for $$\partial L / \partial a$$, for any variable $$a$$; same shape as $$a$$ | — |
@@ -72,7 +73,7 @@ $$db$$, $$dW$$ and $$dx$$.*
 
 Careful with one thing: $$W$$ has the **output** index first, $$W_{j,i}$$. That is how PyTorch's
 `nn.Linear` keeps its weight, as `{out_features, in_features}` [3], and it is where the $$W^\top$$ of
-the usual forward formula comes from (C4).
+the usual forward formula comes from (C1).
 
 GPT-2 small has five kinds of linear layer:
 
@@ -102,17 +103,19 @@ where $$W_j$$ is row $$j$$ of $$W$$. Then:
 | | row 1 | row 2 |
 |---|---|---|
 | input $$x$$ | $$[1,\ 2,\ 3,\ 4]$$ | $$[5,\ 6,\ 7,\ 8]$$ |
-| F1: $$p_{1,i} = x_i W_{1,i}$$ | $$[1,\ 0,\ 0,\ 0]$$ | $$[5,\ 0,\ 0,\ 0]$$ |
-| F1: $$p_{2,i}$$ | $$[0,\ 2,\ 0,\ 0]$$ | $$[0,\ 6,\ 0,\ 0]$$ |
-| F1: $$p_{3,i}$$ | $$[1,\ 2,\ 3,\ 4]$$ | $$[5,\ 6,\ 7,\ 8]$$ |
-| F1: $$p_{4,i}$$ | $$[1,\ -2,\ 3,\ -4]$$ | $$[5,\ -6,\ 7,\ -8]$$ |
-| F2: $$z$$ | $$[1,\ 2,\ 10,\ -2]$$ | $$[5,\ 6,\ 26,\ -2]$$ |
-| F3: $$y$$ | $$[11,\ 22,\ 40,\ 38]$$ | $$[15,\ 26,\ 56,\ 38]$$ |
+| F1: $$y$$ | $$[11,\ 22,\ 40,\ 38]$$ | $$[15,\ 26,\ 56,\ 38]$$ |
 | $$dy$$, from the next layer | $$[1,\ 0,\ 1,\ 0]$$ | $$[0,\ 0,\ 1,\ 0]$$ |
 
-*Table 3. The example, forward. Each $$z_j$$ is the sum of its line of $$p$$: for row 2,
-$$z_3 = 5 + 6 + 7 + 8 = 26$$. The loss cares about three outputs: $$y_{1,1}$$, $$y_{1,3}$$ and
-$$y_{2,3}$$.*
+*Table 3. The example. The loss cares about three outputs: $$y_{1,1}$$, $$y_{1,3}$$ and $$y_{2,3}$$.*
+
+Two of the outputs, written out:
+
+$$
+\begin{aligned}
+y_{2,3} &= 5 \cdot 1 + 6 \cdot 1 + 7 \cdot 1 + 8 \cdot 1 + 30 = 56 \\
+y_{1,4} &= 1 \cdot 1 + 2 \cdot (-1) + 3 \cdot 1 + 4 \cdot (-1) + 40 = 38
+\end{aligned}
+$$
 
 ### 1.4 Where each value is used
 
@@ -121,8 +124,8 @@ $$y_{2,3}$$.*
 step per arrow. $$x_i$$ has $$n_\text{out}$$ arrows going out, one per output, so its gradient is a sum.
 $$W$$ and $$b$$ are used again in every row, so theirs are sums over the rows.*
 
-Figure 1 is the whole plan. The backward pass starts at $$y$$, where $$dy$$ is known, and walks every
-arrow backwards, from right to left: B1 and B2 at F3, B3 at F2, B4 and B5 at F1.
+Figure 1 is the whole plan. F1 has three inputs, so the backward pass has three steps, one per arrow
+into $$y_j$$: B1 for the bias, B2 for the weight and B3 for the input.
 
 ## 2. Three rules
 
@@ -137,36 +140,36 @@ Every step below uses the same three rules as the LayerNorm note [2], and nothin
 *Table 4. The three rules. A linear layer needs only the first two for its gradients. The third comes
 back in Section 7, for one choice the kernel makes.*
 
-And one habit: **each step looks only at its direct inputs.** F1 is $$p_{j,i} = x_i\, W_{j,i}$$, with
-two direct inputs. B4 takes the derivative with respect to $$W_{j,i}$$ and holds $$x_i$$ fixed; B5 takes
-it with respect to $$x_i$$ and holds $$W_{j,i}$$ fixed.
+And one habit: **each step looks at one input and holds the others fixed.** B2 takes the derivative
+with respect to $$W_{j,i}$$ and holds $$x$$ and $$b$$ fixed; B3 takes it with respect to $$x_i$$ and
+holds $$W$$ and $$b$$ fixed.
 
 Whether a step has a sum comes only from where the variable is used in the forward pass, Figure 1. The
 loss and the layers after decide only the values of $$dy$$.
 
-## 3. Breaking it down: B1 to B5
+## 3. Breaking it down: B1 to B3
 
 Each step first works on one row (no index $$t$$), then adds the row index for the whole batch.
 
 ### 3.1 B1: the bias, $$db$$
 
-**One row.** From F3, $$y_j = z_j + b_j$$:
+**One row.** From F1, with respect to $$b_j$$:
 
 $$
 \begin{aligned}
 \frac{\partial y_j}{\partial b_j}
-  &= \frac{\partial z_j}{\partial b_j} + \frac{\partial b_j}{\partial b_j}
+  &= \frac{\partial}{\partial b_j}\Big(\sum_i x_i\, W_{j,i}\Big) + \frac{\partial b_j}{\partial b_j}
   && \text{derivative of a sum = sum of derivatives} \\
   &= 0 + 1 = 1
-  && z_j \text{ does not contain } b_j \text{, so it is a constant} \\
+  && \text{the dot product does not contain } b_j \text{, so it is a constant} \\
 db_j &= dy_j \cdot \frac{\partial y_j}{\partial b_j} = dy_j \cdot 1 = dy_j
   && \text{chain rule}
 \end{aligned}
 $$
 
-**The whole batch.** The same $$b_j$$ is used in every row: $$y_{t,j} = z_{t,j} + b_j$$ for every
-$$t$$. Changing $$b_j$$ changes $$y_{1,j}, y_{2,j}, \ldots, y_{T,j}$$ all at once, so there are $$T$$
-paths to the loss, and by the shared-value rule:
+**The whole batch.** The same $$b_j$$ is used in every row: $$y_{t,j} = \sum_i x_{t,i} W_{j,i} + b_j$$
+for every $$t$$. Changing $$b_j$$ changes $$y_{1,j}, y_{2,j}, \ldots, y_{T,j}$$ all at once, so there
+are $$T$$ paths to the loss, and by the shared-value rule:
 
 $$
 db_j = \frac{\partial L}{\partial y_{1,j}}\frac{\partial y_{1,j}}{\partial b_j} + \cdots + \frac{\partial L}{\partial y_{T,j}}\frac{\partial y_{T,j}}{\partial b_j}
@@ -184,224 +187,140 @@ $$
 
 $$db_3 = 2$$: $$b_3$$ moves output 3 of both rows at once, and both rows want their output 3 changed.
 
-### 3.2 B2: the dot product, $$dz$$
+### 3.2 B2: the weight, $$dW$$
 
-**One row.** From F3 again, this time with respect to $$z_j$$:
+**One row.** From F1, with respect to $$W_{j,i}$$. Write the dot product out; only one of its terms
+holds $$W_{j,i}$$:
 
 $$
 \begin{aligned}
-\frac{\partial y_j}{\partial z_j} &= 1 + 0 = 1
-  && b_j \text{ is a constant} \\
-dz_j &= dy_j \cdot 1 = dy_j
+\frac{\partial y_j}{\partial W_{j,i}}
+  &= \frac{\partial}{\partial W_{j,i}}\left(x_1 W_{j,1} + \cdots + x_i W_{j,i} + \cdots + x_{n_\text{in}} W_{j,n_\text{in}}\right) + \frac{\partial b_j}{\partial W_{j,i}} \\
+  &= \left(0 + \cdots + x_i + \cdots + 0\right) + 0 = x_i
+  && \text{every other term is a constant; } x_i \text{ is a constant factor} \\
+dW_{j,i} &= dy_j \cdot x_i
   && \text{chain rule}
 \end{aligned}
 $$
 
-**The whole batch.** Unlike $$b_j$$, $$z_{t,j}$$ belongs to one row and one column. It is used in
-**one place only**, $$y_{t,j}$$: one path, so no sum.
+Within one row, $$W_{j,i}$$ is used once: it joins input $$i$$ to output $$j$$, and no other output has
+it. Output $$k$$ uses $$W_{k,i}$$, a different weight.
+
+**The whole batch.** $$W_{j,i}$$ is shared by every row: it is in $$y_{t,j}$$ for every $$t$$. That is
+$$T$$ paths, each with its **own** $$x_{t,i}$$:
 
 $$
-dz_{t,j} = dy_{t,j}
-$$
-
-**Example.** $$dz = dy$$: row 1 $$[1, 0, 1, 0]$$, row 2 $$[0, 0, 1, 0]$$.
-
-Adding a constant passes the gradient through unchanged: if $$z_j$$ goes up by 0.1, $$y_j$$ goes up by
-exactly 0.1.
-
-| step | variable | used in how many places | sum? | result |
-|---|---|---|---|---|
-| B1 | $$b_j$$ | every row | yes, over rows | one per column: `{2304}` |
-| B2 | $$z_{t,j}$$ | only $$y_{t,j}$$ | **no** | one per value: `{4, 1024, 2304}` |
-
-*Table 5. B1 gives the gradient the optimizer uses to update $$b$$. B2 starts the road back to $$dW$$
-and $$dx$$.*
-
-### 3.3 B3: the products, $$dp$$
-
-**One row.** From F2, $$z_j = \sum_k p_{j,k}$$. The sum uses $$k$$ so it does not mix with the $$i$$ we
-differentiate for:
-
-$$
-\begin{aligned}
-\frac{\partial z_j}{\partial p_{j,i}}
-  &= \frac{\partial}{\partial p_{j,i}}\left(p_{j,1} + \cdots + p_{j,i} + \cdots + p_{j,n_\text{in}}\right) \\
-  &= 0 + \cdots + 1 + \cdots + 0 = 1
-  && \text{every other } p_{j,k} \text{ is a constant} \\
-dp_{j,i} &= dz_j \cdot 1 = dz_j
-  && \text{chain rule, along the arrow F2}
-\end{aligned}
-$$
-
-**The whole batch.** $$p_{t,j,i}$$ is used once, in its own row's $$z_{t,j}$$: no sum.
-
-$$
-dp_{t,j,i} = dz_{t,j}
-$$
-
-**Example.** Every product in $$z_j$$ gets the whole $$dz_j$$:
-
-| | row 1 | row 2 |
-|---|---|---|
-| $$dp_{1,i}$$ | $$[1,\ 1,\ 1,\ 1]$$, from $$dz_{1,1} = 1$$ | $$[0,\ 0,\ 0,\ 0]$$ |
-| $$dp_{2,i}$$ | $$[0,\ 0,\ 0,\ 0]$$ | $$[0,\ 0,\ 0,\ 0]$$ |
-| $$dp_{3,i}$$ | $$[1,\ 1,\ 1,\ 1]$$, from $$dz_{1,3} = 1$$ | $$[1,\ 1,\ 1,\ 1]$$, from $$dz_{2,3} = 1$$ |
-| $$dp_{4,i}$$ | $$[0,\ 0,\ 0,\ 0]$$ | $$[0,\ 0,\ 0,\ 0]$$ |
-
-*Table 6. $$dp$$ in the example: each line is its $$dz_j$$, copied 4 times.*
-
-B3 is B1 turned round. In B1, **one** value was used in many places, and its gradient **summed** many
-terms. In B3, **many** values are added into one, and each gets the **same** gradient, copied:
-
-| in the forward | in the backward | where |
-|---|---|---|
-| one value used in many places | its gradient is a sum, one term per place | $$b_j$$ (B1), and soon $$W_{j,i}$$ (B4) and $$x_i$$ (B5) |
-| many values added into one | each gets the same gradient | the $$n_\text{in}$$ products of $$z_j$$ (B3) |
-
-*Table 7. A copy in the forward is a sum in the backward, and a sum in the forward is a copy in the
-backward.*
-
-### 3.4 B4: the weight, $$dW$$
-
-**One row.** From F1, $$p_{j,i} = x_i\, W_{j,i}$$, with respect to $$W_{j,i}$$, holding the other direct
-input $$x_i$$ fixed (Section 2):
-
-$$
-\begin{aligned}
-\frac{\partial p_{j,i}}{\partial W_{j,i}} &= x_i \cdot \frac{\partial W_{j,i}}{\partial W_{j,i}} = x_i \cdot 1 = x_i
-  && x_i \text{ is a constant factor} \\
-dW_{j,i} &= dp_{j,i} \cdot x_i
-  && \text{chain rule, along the arrow F1}
-\end{aligned}
-$$
-
-Within one row, $$W_{j,i}$$ is used once: it joins input $$i$$ to output $$j$$, and nothing else.
-
-**The whole batch.** $$W_{j,i}$$ is shared by every row: $$p_{t,j,i} = x_{t,i}\, W_{j,i}$$ for every
-$$t$$. That is $$T$$ paths, each with its **own** $$x_{t,i}$$:
-
-$$
-dW_{j,i} = \sum_{t=1}^{T} dp_{t,j,i} \cdot \frac{\partial p_{t,j,i}}{\partial W_{j,i}} = \sum_{t=1}^{T} dp_{t,j,i}\, x_{t,i}
+dW_{j,i} = \sum_{t=1}^{T} dy_{t,j} \cdot \frac{\partial y_{t,j}}{\partial W_{j,i}} = \sum_{t=1}^{T} dy_{t,j}\, x_{t,i}
 $$
 
 **The difference from B1.** In B1 the local derivative was 1 in every row, so it disappeared. Here it
 is $$x_{t,i}$$, different in every row, so it stays inside the sum. This is the LayerNorm note's B2,
 $$d\gamma$$, again: a weight shared by every row, multiplying a value that is different in every row.
 
-**Example.** $$dW_{j,i} = dp_{1,j,i}\, x_{1,i} + dp_{2,j,i}\, x_{2,i}$$, with $$dp$$ from Table 6:
+**Example.** For a whole row of $$dW$$ at once, $$dW_j = dy_{1,j}\, x_1 + dy_{2,j}\, x_2$$, where $$x_t$$
+is row $$t$$ of the input:
 
-| row of $$dW$$ | row 1's part + row 2's part | result |
+| row of $$dW$$ | $$dy_{1,j}\, x_1 + dy_{2,j}\, x_2$$ | result |
 |---|---|---|
-| $$dW_1$$ | $$[1, 1, 1, 1] \odot [1, 2, 3, 4] + 0$$ | $$[1,\ 2,\ 3,\ 4]$$ |
+| $$dW_1$$ | $$1 \cdot [1, 2, 3, 4] + 0 \cdot [5, 6, 7, 8]$$ | $$[1,\ 2,\ 3,\ 4]$$ |
 | $$dW_2$$ | $$0 + 0$$ | $$[0,\ 0,\ 0,\ 0]$$ |
-| $$dW_3$$ | $$[1, 1, 1, 1] \odot [1, 2, 3, 4] + [1, 1, 1, 1] \odot [5, 6, 7, 8]$$ | $$[6,\ 8,\ 10,\ 12]$$ |
+| $$dW_3$$ | $$1 \cdot [1, 2, 3, 4] + 1 \cdot [5, 6, 7, 8]$$ | $$[6,\ 8,\ 10,\ 12]$$ |
 | $$dW_4$$ | $$0 + 0$$ | $$[0,\ 0,\ 0,\ 0]$$ |
 
-*Table 8. $$dW$$ in the example. $$\odot$$ multiplies value by value:
-$$[a_1, a_2] \odot [c_1, c_2] = [a_1 c_1,\ a_2 c_2]$$. Row 3 has a part from each row of the input, as
-$$db_3$$ did.*
+*Table 5. $$dW$$ in the example. Row 3 has a part from each row of the input, as $$db_3$$ did.*
 
 $$W$$ multiplies $$x$$: where $$x_{t,i}$$ is large, a small change of $$W_{j,i}$$ moves $$y_{t,j}$$ a
 lot; where $$x_{t,i} = 0$$, changing $$W_{j,i}$$ does nothing to that row. So $$dW_3 = [6, 8, 10, 12]$$
 grows with the inputs: $$W_{3,4}$$ multiplies the largest ones, 4 and 8.
 
-### 3.5 B5: the input, $$dx$$
+### 3.3 B3: the input, $$dx$$
 
-**One row.** From F1 again, now with respect to $$x_i$$, holding $$W_{j,i}$$ fixed:
-
-$$
-\frac{\partial p_{j,i}}{\partial x_i} = \frac{\partial x_i}{\partial x_i} \cdot W_{j,i} = W_{j,i}
-$$
-
-The difference from B4 is where $$x_i$$ is used. One $$x_i$$ goes into **every** output of the row:
-$$p_{1,i} = x_i W_{1,i},\ p_{2,i} = x_i W_{2,i},\ \ldots,\ p_{n_\text{out},i} = x_i W_{n_\text{out},i}$$.
-That is $$n_\text{out}$$ paths, so by the shared-value rule:
+**One row.** From F1, with respect to $$x_i$$. Again only one term of the dot product holds it:
 
 $$
-dx_i = \frac{\partial L}{\partial p_{1,i}}\frac{\partial p_{1,i}}{\partial x_i} + \cdots + \frac{\partial L}{\partial p_{n_\text{out},i}}\frac{\partial p_{n_\text{out},i}}{\partial x_i}
-     = \sum_{j=1}^{n_\text{out}} dp_{j,i}\, W_{j,i}
+\begin{aligned}
+\frac{\partial y_j}{\partial x_i}
+  &= \frac{\partial}{\partial x_i}\left(x_1 W_{j,1} + \cdots + x_i W_{j,i} + \cdots + x_{n_\text{in}} W_{j,n_\text{in}}\right) + \frac{\partial b_j}{\partial x_i} \\
+  &= \left(0 + \cdots + W_{j,i} + \cdots + 0\right) + 0 = W_{j,i}
+  && \text{every other term is a constant; } W_{j,i} \text{ is a constant factor}
+\end{aligned}
+$$
+
+The difference from B2 is where $$x_i$$ is used. One $$x_i$$ goes into **every** output of its row,
+$$y_1, y_2, \ldots, y_{n_\text{out}}$$, each time with a different weight. That is $$n_\text{out}$$
+paths, so by the shared-value rule:
+
+$$
+dx_i = \frac{\partial L}{\partial y_1}\frac{\partial y_1}{\partial x_i} + \cdots + \frac{\partial L}{\partial y_{n_\text{out}}}\frac{\partial y_{n_\text{out}}}{\partial x_i}
+     = \sum_{j=1}^{n_\text{out}} dy_j\, W_{j,i}
 $$
 
 **The whole batch.** $$x_{t,i}$$ is used in every output of row $$t$$, and in no other row, so the sum
 is over the **outputs** $$j$$, not over the rows:
 
 $$
-dx_{t,i} = \sum_{j=1}^{n_\text{out}} dp_{t,j,i}\, W_{j,i}
+dx_{t,i} = \sum_{j=1}^{n_\text{out}} dy_{t,j}\, W_{j,i}
 $$
 
 This is the gradient sent to the layer before, `{4, 1024, 768}`, the shape of the input.
 
 | step | variable | shared by | sum over |
 |---|---|---|---|
-| B1, B4 | $$b_j$$, $$W_{j,i}$$ | all rows | rows $$t$$ |
-| B2, B3 | $$z_{t,j}$$, $$p_{t,j,i}$$ | nothing: one value | no sum |
-| B5 | $$x_{t,i}$$ | all outputs of its row | outputs $$j$$ |
+| B1, B2 | $$b_j$$, $$W_{j,i}$$ | all rows | rows $$t$$ |
+| B3 | $$x_{t,i}$$ | all outputs of its row | outputs $$j$$ |
 
-*Table 9. Sum over whatever the variable is shared across.*
+*Table 6. Sum over whatever the variable is shared across.*
 
-**Example.** In row 1, only $$dp_{1,i}$$ and $$dp_{3,i}$$ are not 0 (Table 6):
+**Example.** In row 1, $$dy_{1,1} = 1$$ and $$dy_{1,3} = 1$$, so two rows of $$W$$ come back; in row 2,
+only $$dy_{2,3} = 1$$:
 
 $$
-dx_1 = [1, 1, 1, 1] \odot W_1 + [1, 1, 1, 1] \odot W_3 = [1,\ 0,\ 0,\ 0] + [1,\ 1,\ 1,\ 1] = [2,\ 1,\ 1,\ 1]
+dx_1 = 1 \cdot W_1 + 1 \cdot W_3 = [1,\ 0,\ 0,\ 0] + [1,\ 1,\ 1,\ 1] = [2,\ 1,\ 1,\ 1]
+\qquad\qquad
+dx_2 = 1 \cdot W_3 = [1,\ 1,\ 1,\ 1]
 $$
-
-and in row 2, only $$dp_{3,i}$$: $$dx_2 = [1, 1, 1, 1] \odot W_3 = [1,\ 1,\ 1,\ 1]$$.
 
 Each output sends its gradient back along its own row of weights, and each input collects from all the
 outputs of its row. Output 3 adds the row up, so it sends 1 back to every input; output 1 copies
 $$x_1$$, so it sends 1 back to $$x_1$$ alone. That is why $$dx_{1,1} = 2$$: $$x_{1,1}$$ reaches the loss
 through two outputs.
 
-### 3.6 All five steps
+**Where the sum in B3 comes from.** Not from the sum over $$i$$ in F1. That sum adds $$n_\text{in}$$
+terms into one output, and the derivative picked out just one of them. The sum over $$j$$ comes from
+the other direction: one input is used by $$n_\text{out}$$ outputs.
+
+### 3.4 All three steps
 
 | step | gradient of | formula | one per | example |
 |---|---|---|---|---|
 | B1 | bias | $$db_j = \sum_t dy_{t,j}$$ | output column | $$[1,\ 0,\ 2,\ 0]$$ |
-| B2 | dot product | $$dz_{t,j} = dy_{t,j}$$ | output value | $$[1, 0, 1, 0]$$, $$[0, 0, 1, 0]$$ |
-| B3 | products | $$dp_{t,j,i} = dz_{t,j}$$ | product | Table 6 |
-| B4 | weight | $$dW_{j,i} = \sum_t dp_{t,j,i}\, x_{t,i}$$ | weight | Table 8 |
-| B5 | input | $$dx_{t,i} = \sum_j dp_{t,j,i}\, W_{j,i}$$ | input value | $$[2,\ 1,\ 1,\ 1]$$, $$[1,\ 1,\ 1,\ 1]$$ |
+| B2 | weight | $$dW_{j,i} = \sum_t dy_{t,j}\, x_{t,i}$$ | weight | Table 5 |
+| B3 | input | $$dx_{t,i} = \sum_j dy_{t,j}\, W_{j,i}$$ | input value | $$[2,\ 1,\ 1,\ 1]$$, $$[1,\ 1,\ 1,\ 1]$$ |
 
-*Table 10. The backward pass, broken down. B4 and B5 both need B3's $$dp$$, and nothing from each
-other.*
-
-## 4. Rebuilding: C1 to C5
-
-Table 10 is correct but costly. Run as it stands, it would keep $$dp$$: one value per product,
-$$768 \times 2304 = 1{,}769{,}472$$ per row of the qkv layer, 7.2 billion for its 4096 rows, 29 GB in
-float32. This section folds $$dp$$ away, then reads the sums that are left as matrix products.
-
-**C1: $$dp$$ in $$dy$$.** Put B2 into B3:
-
-$$
-dp_{t,j,i} = dz_{t,j} = dy_{t,j}
-$$
-
-The index $$i$$ is gone from the right side: every product of output $$j$$ gets the same
-$$dy_{t,j}$$. Nothing per product has to be stored. Example: row 1's $$dp_{3,i} = [1, 1, 1, 1]$$ is
-$$dy_{1,3} = 1$$ four times, as in Table 6.
-
-**C2: $$dW$$ in $$dy$$.** Put C1 into B4:
-
-$$
-dW_{j,i} = \sum_{t=1}^{T} dy_{t,j}\, x_{t,i}
-$$
-
-Example: $$dW_{3,2} = dy_{1,3}\, x_{1,2} + dy_{2,3}\, x_{2,2} = 1 \times 2 + 1 \times 6 = 8$$, as in
-Table 8.
-
-**C3: $$dx$$ in $$dy$$.** Put C1 into B5:
-
-$$
-dx_{t,i} = \sum_{j=1}^{n_\text{out}} dy_{t,j}\, W_{j,i}
-$$
-
-Example: $$dx_{1,1} = 1 \times 1 + 0 \times 0 + 1 \times 1 + 0 \times 1 = 2$$, as in B5.
+*Table 7. The backward pass, broken down. The three steps need nothing from each other: each uses only
+$$dy$$ and what the forward read.*
 
 ![Where the sums run](/images/linear-backward/fig2-sums.svg)
-*Figure 2. The sums of C3, C2 and B1, in the example. Each coloured cell is one term.*
+*Figure 2. The sums of B3, B2 and B1, in the example. Each coloured cell is one term.*
 
-**C4: reading a sum as a product.** A matrix product $$C = A\,B$$ is, one value at a time,
+Side by side with LayerNorm's last step, which has the same shape:
+
+| | LayerNorm's F6 [2] | linear's F1 |
+|---|---|---|
+| forward | $$y_i = \gamma_i\, \hat{x}_i + \beta_i$$ | $$y_j = \sum_i W_{j,i}\, x_i + b_j$$ |
+| bias | $$d\beta_i = \sum_t dy_{t,i}$$ | $$db_j = \sum_t dy_{t,j}$$ |
+| weight | $$d\gamma_i = \sum_t dy_{t,i}\, \hat{x}_{t,i}$$ | $$dW_{j,i} = \sum_t dy_{t,j}\, x_{t,i}$$ |
+| input | $$d\hat{x}_{t,i} = dy_{t,i}\, \gamma_i$$: no sum | $$dx_{t,i} = \sum_j dy_{t,j}\, W_{j,i}$$: a sum over outputs |
+
+*Table 8. The bias and weight steps are the same. The input step differs because $$\hat{x}_i$$ is used
+by one output, $$y_i$$, and $$x_i$$ by all $$n_\text{out}$$ of them.*
+
+## 4. Rebuilding: C1 and C2
+
+Table 7 is already short, but each line is still a sum written one value at a time. This section reads
+those sums as matrix products: the form a GPU kernel runs, and the form with the $$\top$$.
+
+**C1: reading a sum as a product.** A matrix product $$C = A\,B$$ is, one value at a time,
 
 $$
 C_{r,c} = \sum_k A_{r,k}\, B_{k,c}
@@ -419,7 +338,7 @@ $$
 
 This is where the forward's $$\top$$ comes from: from $$W$$ keeping the output index first.
 
-**C5: the three gradients as products.** The same reading for C3, C2 and B1:
+**C2: the three gradients as products.** The same reading for B3, B2 and B1:
 
 | gradient | the sum | summed index | where it sits | product |
 |---|---|---|---|---|
@@ -427,7 +346,7 @@ This is where the forward's $$\top$$ comes from: from $$W$$ keeping the output i
 | weight | $$\sum_t dy_{t,j}\, x_{t,i}$$ | $$t$$ | 1st in $$dy$$: wrong, so $$dy^\top$$; 1st in $$x$$: right | $$dW = dy^\top x$$ |
 | bias | $$\sum_t dy_{t,j}$$ | $$t$$ | 1st in $$dy$$: wrong, so $$dy^\top$$ | $$db = dy^\top \mathbf{1}$$ |
 
-*Table 11. $$\mathbf{1}$$ is a column of $$T$$ ones: multiplying by it adds up each row of $$dy^\top$$,
+*Table 9. $$\mathbf{1}$$ is a column of $$T$$ ones: multiplying by it adds up each row of $$dy^\top$$,
 which is each column of $$dy$$.*
 
 $$
@@ -439,13 +358,13 @@ For the whole batch, the batch and sequence dims are laid flat into the $$T$$ ro
 
 **Example**, straight from the three products:
 
-| | from C5 | the five steps gave |
+| | from C2 | the steps gave |
 |---|---|---|
-| $$dx = dy\, W$$ | row 1: $$1 \cdot W_1 + 1 \cdot W_3 = [2,\ 1,\ 1,\ 1]$$; row 2: $$1 \cdot W_3 = [1,\ 1,\ 1,\ 1]$$ | the same (B5) |
-| $$dW = dy^\top x$$ | row $$j$$ is $$\sum_t dy_{t,j}\, x_t$$: $$x_1$$, $$0$$, $$x_1 + x_2$$, $$0$$ | Table 8 |
+| $$dx = dy\, W$$ | row 1: $$1 \cdot W_1 + 1 \cdot W_3 = [2,\ 1,\ 1,\ 1]$$; row 2: $$1 \cdot W_3 = [1,\ 1,\ 1,\ 1]$$ | the same (B3) |
+| $$dW = dy^\top x$$ | row $$j$$ is $$\sum_t dy_{t,j}\, x_t$$: $$x_1$$, $$0$$, $$x_1 + x_2$$, $$0$$ | Table 5 (B2) |
 | $$db = dy^\top \mathbf{1}$$ | the column sums of $$dy$$: $$[1,\ 0,\ 2,\ 0]$$ | the same (B1) |
 
-*Table 12. The rebuilt products give the same numbers as the five steps.*
+*Table 10. The products give the same numbers as the three steps.*
 
 **The shapes check it.** A gradient has the shape of its variable, and the products give exactly
 that:
@@ -457,18 +376,18 @@ that:
 | $$dW = dy^\top x$$ | `{2304, 4096}` | `{4096, 768}` | `{2304, 768}` | $$W$$ |
 | $$db = dy^\top \mathbf{1}$$ | `{2304, 4096}` | `{4096}` | `{2304}` | $$b$$ |
 
-*Table 13. The qkv layer. The shapes are a quick way to remember the products, but they are a check,
-not a reason: the reason is Table 11.*
+*Table 11. The qkv layer. The shapes are a quick way to remember the products, but they are a check,
+not a reason: the reason is Table 9.*
 
 **What each product means.**
 
 | product | what it is | why |
 |---|---|---|
-| $$dx = dy\, W$$ | each row of $$dy$$, sent back through $$W$$: a sum of rows of $$W$$ | the forward goes from $$x$$ to $$y$$ through $$W^\top$$; the gradient comes back through $$W$$ (B5) |
-| $$dW = dy^\top x$$ | for each output $$j$$, the input rows added up, each scaled by $$dy_{t,j}$$ | $$W$$ is shared by every row, and multiplies a different $$x$$ in each (B4) |
+| $$dx = dy\, W$$ | each row of $$dy$$, sent back through $$W$$: a sum of rows of $$W$$ | the forward goes from $$x$$ to $$y$$ through $$W^\top$$; the gradient comes back through $$W$$ (B3) |
+| $$dW = dy^\top x$$ | for each output $$j$$, the input rows added up, each scaled by $$dy_{t,j}$$ | $$W$$ is shared by every row, and multiplies a different $$x$$ in each (B2) |
 | $$db = dy^\top \mathbf{1}$$ | the column sums of $$dy$$ | $$b$$ is shared by every row, and multiplies nothing (B1) |
 
-*Table 14. The three products, read back into words.*
+*Table 12. The three products, read back into words.*
 
 ## 5. Two checks
 
@@ -479,7 +398,7 @@ $$
 x'_t = [x_t,\ 1] \qquad W'_j = [W_j,\ b_j] \qquad\Rightarrow\qquad x'_t \cdot W'_j = x_t \cdot W_j + b_j = y_{t,j}
 $$
 
-The layer is now one without a bias. C2 gives the gradient of the new last column of $$W'$$, whose
+The layer is now one without a bias. B2 gives the gradient of the new last column of $$W'$$, whose
 input is always 1:
 
 $$
@@ -487,26 +406,28 @@ dW'_{j,\,n_\text{in}+1} = \sum_t dy_{t,j} \cdot 1 = \sum_t dy_{t,j} = db_j
 $$
 
 which is B1. In the example, $$x'_1 = [1, 2, 3, 4, 1]$$ and $$x'_2 = [5, 6, 7, 8, 1]$$, and the last
-column of $$dW' = dy^\top x'$$ is $$[1, 0, 2, 0] = db$$. So the bias needs no rule of its own: B1 is B4
+column of $$dW' = dy^\top x'$$ is $$[1, 0, 2, 0] = db$$. So the bias needs no rule of its own: B1 is B2
 with an input that is always 1.
 
-**Stretching $$x$$ or stretching $$W$$ changes the loss by the same amount.** $$z = x\, W^\top$$ is
-linear in $$x$$ and in $$W$$. Multiply $$x$$ by $$1 + \epsilon$$ and $$z$$ becomes
-$$(1 + \epsilon)\, z$$; multiply $$W$$ by $$1 + \epsilon$$ instead, and $$z$$ becomes the same
-$$(1 + \epsilon)\, z$$. The loss sees the same change, so the gradients must agree:
+**Stretching $$x$$ or stretching $$W$$ changes the loss by the same amount.** Write $$z = x\, W^\top$$
+for the output without its bias. $$z$$ is linear in $$x$$ and in $$W$$: multiply $$x$$ by
+$$1 + \epsilon$$ and $$z$$ becomes $$(1 + \epsilon)\, z$$; multiply $$W$$ by $$1 + \epsilon$$ instead,
+and $$z$$ becomes the same $$(1 + \epsilon)\, z$$. The loss sees the same change, so the gradients must
+agree:
 
 $$
 \sum_{t,i} x_{t,i}\, dx_{t,i} = \sum_{j,i} W_{j,i}\, dW_{j,i} = \sum_{t,j} z_{t,j}\, dy_{t,j}
 $$
 
-From C3, with the sums swapped:
+From B3, with the sums swapped:
 
 $$
 \sum_{t,i} x_{t,i}\, dx_{t,i} = \sum_{t,i} x_{t,i} \sum_j dy_{t,j}\, W_{j,i}
                               = \sum_{t,j} dy_{t,j} \underbrace{\sum_i x_{t,i}\, W_{j,i}}_{=\, z_{t,j}}
 $$
 
-and from C2 the same way for $$W$$. In the example, all three are 37:
+and from B2 the same way for $$W$$. In the example, $$z = y - b$$ is $$[1, 2, 10, -2]$$ and
+$$[5, 6, 26, -2]$$, and all three sums are 37:
 
 | sum | worked out | total |
 |---|---|---|
@@ -514,40 +435,29 @@ and from C2 the same way for $$W$$. In the example, all three are 37:
 | $$\sum W \cdot dW$$ | $$W_1 \cdot dW_1 = 1$$; $$W_3 \cdot dW_3 = 6 + 8 + 10 + 12 = 36$$; rows 2 and 4 of $$dW$$ are 0 | 37 |
 | $$\sum z \cdot dy$$ | row 1: $$z_1 + z_3 = 1 + 10 = 11$$; row 2: $$z_3 = 26$$ | 37 |
 
-*Table 15. The second check in the example. Both checks hold for any $$x$$, $$W$$, $$b$$ and $$dy$$.*
+*Table 13. The second check in the example. Both checks hold for any $$x$$, $$W$$, $$b$$ and $$dy$$.*
 
 ## 6. Checked against PyTorch
 
 | test | compared | largest difference |
 |---|---|---|
-| the example of Section 1.3 | every number of Tables 3, 6, 8, 10, 12 and 15, and the first check, with `F.linear` and autograd | none: the same whole numbers |
-| 16 random rows, 768 in, 2304 out; $$x$$, $$b$$, $$dy$$ from $$\mathcal{N}(0, 1)$$, $$W$$ from $$0.02\,\mathcal{N}(0, 1)$$ | the five steps B1 to B5, with $$p$$ and $$dp$$ kept, against autograd | $$db$$: 0; $$dx$$: $$2.7 \times 10^{-15}$$; $$dW$$: $$7.1 \times 10^{-15}$$ |
-| 256 random rows, the same sizes | C2 and C3, written index by index (`einsum`), against autograd | 0 and 0 |
-| the same | C5's products $$dy\, W$$, $$dy^\top x$$ and $$dy^\top \mathbf{1}$$ | 0, 0 and $$3.6 \times 10^{-14}$$ |
+| the example of Section 1.3 | every number of Tables 3, 5, 7, 10 and 13, and the first check, with `F.linear` and autograd | none: the same whole numbers |
+| 256 random rows, 768 in, 2304 out; $$x$$, $$b$$, $$dy$$ from $$\mathcal{N}(0, 1)$$, $$W$$ from $$0.02\,\mathcal{N}(0, 1)$$ | B1, B2 and B3, written one value at a time (`einsum`), against autograd | 0, 0 and 0 |
+| the same | C2's products $$dy\, W$$, $$dy^\top x$$ and $$dy^\top \mathbf{1}$$ | 0, 0 and $$3.6 \times 10^{-14}$$ |
 | the same | the first check: the last column of $$dW'$$ against $$db$$ | $$3.6 \times 10^{-14}$$ |
 | the same | the second check: the three sums, each about 502.589 | $$1.0 \times 10^{-15}$$ of the sum |
 | input `{4, 64, 768}`, three dims as in GPT-2 | $$dx$$ against $$dy\, W$$; $$dW$$ against $$dy^\top x$$ and $$db$$ against the column sums, with the 256 rows laid flat | 0, 0 and 0 |
-| one weight, $$W_{6,8}$$, 256 random rows | C2 against a finite difference, $$(L(W + \epsilon) - L(W - \epsilon)) / 2\epsilon$$ with $$\epsilon = 10^{-6}$$ | $$-9.855569485$$ against $$-9.855569488$$: $$2.9 \times 10^{-9}$$, the finite difference's own error |
+| one weight, $$W_{6,8}$$, 256 random rows | B2 against a finite difference, $$(L(W + \epsilon) - L(W - \epsilon)) / 2\epsilon$$ with $$\epsilon = 10^{-6}$$ | $$-9.855569485$$ against $$-9.855569488$$: $$2.9 \times 10^{-9}$$, the finite difference's own error |
 
-*Table 16. PyTorch 2.12 [4], `torch.nn.functional.linear` and `backward`, in double precision.
-Differences near $$10^{-15}$$ are rounding; a difference of 0 is equal to the last bit.*
+*Table 14. PyTorch 2.12 [4], `torch.nn.functional.linear` and `backward`, in double precision.
+Differences near $$10^{-14}$$ are rounding; a difference of 0 is equal to the last bit.*
 
 ## 7. What the rebuilt formulas give the kernel
 
-The five steps and the three products give the same numbers, but they are very different programs.
+The three steps and the three products give the same numbers. The products are what a GPU runs well,
+and the kernel in my trainer [1] (`linear.cuh`) is C1 and C2 written out:
 
-| | broken down (Table 10) | rebuilt (C5) |
-|---|---|---|
-| per product $$p_{t,j,i}$$ | $$p$$ and $$dp$$: 7.2 billion values each for the qkv layer | none: C1 folded them away |
-| per output value | $$z$$, $$dz$$ | none: $$dz = dy$$ |
-| the sums | B4 over rows, B5 over outputs, B1 over rows | the same sums, as the inner dims of three products |
-| saved by the forward and needed | $$x$$, $$W$$ | the same: $$x$$, $$W$$ |
-
-*Table 17. In float32, the qkv layer's $$p$$ alone would be 29 GB, for one of GPT-2's 49 linear layers.*
-
-The kernel in my trainer [1] (`linear.cuh`) is C4 and C5 written out:
-
-| in C4, C5 | in the kernel | where |
+| in C1, C2 | in the kernel | where |
 |---|---|---|
 | $$y = x\, W^\top + b$$ | `output` | `linear_matmul<false, true>`: $$b$$ added as each value is stored |
 | $$dy$$ | `output_grad` | given by the layer after |
@@ -555,13 +465,13 @@ The kernel in my trainer [1] (`linear.cuh`) is C4 and C5 written out:
 | $$dW = dy^\top x$$ | `weight_grad` | `linear_matmul<true, false>`: added onto (`+=`) |
 | $$db = dy^\top \mathbf{1}$$ | `bias_grad` | `linear_bias_grad_kernel`: each block owns 32 columns and sums all their rows: added onto (`+=`) |
 
-*Table 18. The two flags of `linear_matmul<LEFT_TRANSPOSED, RIGHT_TRANSPOSED>` say whether the left and
+*Table 15. The two flags of `linear_matmul<LEFT_TRANSPOSED, RIGHT_TRANSPOSED>` say whether the left and
 right of `product = left · right` are read turned round. Nothing is ever turned round in memory:
 $$W^\top$$ and $$dy^\top$$ are only read in a different order.*
 
 **One kernel for all three products.** Each block makes a 128 × 128 square of the product and walks the
 inner dim 8 values at a time through shared memory; each of its 256 threads keeps an 8 × 8 square of
-sums in registers. These are the sizes of Boehm's kernel 5 [6]. The inner dim is the index C5 sums
+sums in registers. These are the sizes of Boehm's kernel 5 [6]. The inner dim is the index C2 sums
 over: $$n_\text{in}$$ for $$y$$, $$n_\text{out}$$ for $$dx$$, and the rows for $$dW$$. All three
 products have the same $$T \cdot n_\text{in} \cdot n_\text{out}$$ multiply-adds, so the backward costs
 twice the forward.
@@ -574,22 +484,21 @@ twice the forward.
 | $$dW$$, $$db$$ | by every micro-batch of a training step | the shared-value rule, across calls: each call adds its part |
 | $$dW$$ of the head | by the head and by the encoder, both reading `wte` | used twice: add the parts |
 
-*Table 19. So $$dW$$ and $$db$$ are set to 0 once per step, and every call adds onto them.*
+*Table 16. So $$dW$$ and $$db$$ are set to 0 once per step, and every call adds onto them.*
 
-The kernel never works out $$p$$, $$dp$$ or $$dz$$: C1 folded them away. All that is left from the five
-steps is where the sums run: B5's sum over outputs is the inner dim of $$dx = dy\, W$$, B4's sum over
-rows is the inner dim of $$dW = dy^\top x$$, and B1's is the column sums. Why squares of that size, and
-how fast the kernel is next to cuBLAS, are for a later entry: nothing here is timed.
+All that is left from the three steps is where the sums run: B3's sum over outputs is the inner dim of
+$$dx = dy\, W$$, B2's sum over rows is the inner dim of $$dW = dy^\top x$$, and B1's is the column sums.
+Why squares of that size, and how fast the kernel is next to cuBLAS, are for a later entry: nothing here
+is timed.
 
 ## 8. What to remember
 
-1. **One step per arrow.** The backward pass walks Figure 1's arrows backwards. Each step uses only the
-   chain rule, and holds its other direct inputs fixed.
+1. **One forward step, three backward steps.** F1 has three inputs, $$x$$, $$W$$ and $$b$$, and each
+   gets one backward step that holds the other two fixed: the same as LayerNorm's last step.
 2. **A sum comes from sharing.** $$W$$ and $$b$$ are shared by every row, so their gradients sum over
-   rows. $$x_i$$ is shared by every output of its row, so its gradient sums over outputs. A value used in
-   one place has no sum.
-3. **A sum in the forward is a copy in the backward.** $$z_j$$ adds $$n_\text{in}$$ products, and each
-   gets the whole $$dz_j$$. So $$dp = dy$$, and nothing per product has to be stored.
+   rows. $$x_i$$ is shared by every output of its row, so its gradient sums over outputs.
+3. **The derivative of a dot product with respect to one value is its partner.** Only one term holds
+   $$x_i$$, and its derivative is $$W_{j,i}$$; every other term is a constant.
 4. **A $$\top$$ comes from the summed index.** Write the sum, and see where its index sits in each
    factor: second in the left and first in the right, or read turned round. The shapes check it.
 5. **The formulas say what a linear layer is.** The bias is a weight on an input of 1, and stretching
