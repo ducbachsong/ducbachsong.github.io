@@ -1,0 +1,136 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 760 420" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="760" height="420" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">LayerNorm kernels on a Tesla T4: time against warps launched (batch D, run 3)</text>
+  <text x="20" y="44" fill="#495057">GPT-2 small, 4,096 rows of 768. 8 block counts x 5 block sizes; mean of runs 2..20 after a warm-up.</text>
+  <g stroke="#e9ecef">
+    <line x1="80" y1="282.7" x2="700" y2="282.7"/>
+    <line x1="80" y1="235.5" x2="700" y2="235.5"/>
+    <line x1="80" y1="188.2" x2="700" y2="188.2"/>
+    <line x1="80" y1="140.9" x2="700" y2="140.9"/>
+    <line x1="80" y1="93.6" x2="700" y2="93.6"/>
+    <line x1="80.0" y1="70" x2="80.0" y2="330"/>
+    <line x1="192.7" y1="70" x2="192.7" y2="330"/>
+    <line x1="305.5" y1="70" x2="305.5" y2="330"/>
+    <line x1="418.2" y1="70" x2="418.2" y2="330"/>
+    <line x1="530.9" y1="70" x2="530.9" y2="330"/>
+    <line x1="643.6" y1="70" x2="643.6" y2="330"/>
+  </g>
+  <line x1="80" y1="330" x2="700" y2="330" stroke="#adb5bd"/>
+  <g font-size="11" fill="#868e96" text-anchor="end">
+    <text x="74" y="334.0">0</text>
+    <text x="74" y="286.7">0.1</text>
+    <text x="74" y="239.5">0.2</text>
+    <text x="74" y="192.2">0.3</text>
+    <text x="74" y="144.9">0.4</text>
+    <text x="74" y="97.6">0.5</text>
+  </g>
+  <g font-size="11" fill="#868e96" text-anchor="middle">
+    <text x="80.0" y="346">64</text>
+    <text x="192.7" y="346">256</text>
+    <text x="305.5" y="346">1,024</text>
+    <text x="418.2" y="346">4,096</text>
+    <text x="530.9" y="346">16,384</text>
+    <text x="643.6" y="346">65,536</text>
+  </g>
+  <text x="390.0" y="364" font-size="12" fill="#495057" text-anchor="middle">warps launched = blocks x threads / 32 (log scale); one warp works on one row at a time</text>
+  <text x="22" y="200.0" font-size="12" fill="#495057" text-anchor="middle" transform="rotate(-90 22 200.0)">time per call (ms)</text>
+  <line x1="290.6" y1="70" x2="290.6" y2="330" stroke="#495057" stroke-dasharray="4 3"/>
+  <line x1="323.6" y1="70" x2="323.6" y2="330" stroke="#495057" stroke-dasharray="4 3"/>
+  <text x="285.6" y="240.2" font-size="11" fill="#495057" text-anchor="end">rows of each SM fit</text>
+  <text x="285.6" y="254.2" font-size="11" fill="#495057" text-anchor="end">in its 64 KB of L1</text>
+  <text x="328.6" y="82" font-size="11" fill="#495057">T4 full: 32 warps per SM</text>
+  <g fill="#e8590c">
+    <path d="M 93.1 78.0 L 103.1 78.0 L 98.1 70.0 Z"><title>backward, 40 x 64 (80 warps): 0.962 ms</title></path>
+    <text x="106.1" y="79.0" font-size="11">0.962</text>
+    <circle cx="154.5" cy="103.1" r="3.6"><title>backward, 40 x 128 (160 warps): 0.480 ms</title></circle>
+    <circle cx="210.9" cy="194.8" r="3.6"><title>backward, 40 x 256 (320 warps): 0.286 ms</title></circle>
+    <circle cx="267.2" cy="195.7" r="3.6"><title>backward, 40 x 512 (640 warps): 0.284 ms</title></circle>
+    <circle cx="323.6" cy="178.7" r="3.6"><title>backward, 40 x 1024 (1,280 warps): 0.320 ms</title></circle>
+    <circle cx="154.5" cy="90.3" r="3.6"><title>backward, 80 x 64 (160 warps): 0.507 ms</title></circle>
+    <circle cx="210.9" cy="188.7" r="3.6"><title>backward, 80 x 128 (320 warps): 0.299 ms</title></circle>
+    <circle cx="267.2" cy="193.9" r="3.6"><title>backward, 80 x 256 (640 warps): 0.288 ms</title></circle>
+    <circle cx="323.6" cy="179.7" r="3.6"><title>backward, 80 x 512 (1,280 warps): 0.318 ms</title></circle>
+    <circle cx="380.0" cy="169.3" r="3.6"><title>backward, 80 x 1024 (2,560 warps): 0.340 ms</title></circle>
+    <circle cx="192.7" cy="156.0" r="3.6"><title>backward, 128 x 64 (256 warps): 0.368 ms</title></circle>
+    <circle cx="249.1" cy="200.0" r="3.6"><title>backward, 128 x 128 (512 warps): 0.275 ms</title></circle>
+    <circle cx="305.5" cy="182.0" r="3.6"><title>backward, 128 x 256 (1,024 warps): 0.313 ms</title></circle>
+    <circle cx="361.8" cy="172.6" r="3.6"><title>backward, 128 x 512 (2,048 warps): 0.333 ms</title></circle>
+    <circle cx="418.2" cy="166.9" r="3.6"><title>backward, 128 x 1024 (4,096 warps): 0.345 ms</title></circle>
+    <circle cx="249.1" cy="200.0" r="3.6"><title>backward, 256 x 64 (512 warps): 0.275 ms</title></circle>
+    <circle cx="305.5" cy="182.0" r="3.6"><title>backward, 256 x 128 (1,024 warps): 0.313 ms</title></circle>
+    <circle cx="361.8" cy="177.3" r="3.6"><title>backward, 256 x 256 (2,048 warps): 0.323 ms</title></circle>
+    <circle cx="418.2" cy="174.5" r="3.6"><title>backward, 256 x 512 (4,096 warps): 0.329 ms</title></circle>
+    <circle cx="474.5" cy="165.0" r="3.6"><title>backward, 256 x 1024 (8,192 warps): 0.349 ms</title></circle>
+    <circle cx="305.5" cy="166.9" r="3.6"><title>backward, 512 x 64 (1,024 warps): 0.345 ms</title></circle>
+    <circle cx="361.8" cy="176.4" r="3.6"><title>backward, 512 x 128 (2,048 warps): 0.325 ms</title></circle>
+    <circle cx="418.2" cy="175.9" r="3.6"><title>backward, 512 x 256 (4,096 warps): 0.326 ms</title></circle>
+    <circle cx="474.5" cy="174.9" r="3.6"><title>backward, 512 x 512 (8,192 warps): 0.328 ms</title></circle>
+    <circle cx="530.9" cy="164.1" r="3.6"><title>backward, 512 x 1024 (16,384 warps): 0.351 ms</title></circle>
+    <circle cx="361.8" cy="179.7" r="3.6"><title>backward, 1024 x 64 (2,048 warps): 0.318 ms</title></circle>
+    <circle cx="418.2" cy="176.8" r="3.6"><title>backward, 1024 x 128 (4,096 warps): 0.324 ms</title></circle>
+    <circle cx="474.5" cy="174.9" r="3.6"><title>backward, 1024 x 256 (8,192 warps): 0.328 ms</title></circle>
+    <circle cx="530.9" cy="172.6" r="3.6"><title>backward, 1024 x 512 (16,384 warps): 0.333 ms</title></circle>
+    <circle cx="587.3" cy="163.6" r="3.6"><title>backward, 1024 x 1024 (32,768 warps): 0.352 ms</title></circle>
+    <circle cx="418.2" cy="181.6" r="3.6"><title>backward, 2048 x 64 (4,096 warps): 0.314 ms</title></circle>
+    <circle cx="474.5" cy="173.5" r="3.6"><title>backward, 2048 x 128 (8,192 warps): 0.331 ms</title></circle>
+    <circle cx="530.9" cy="168.8" r="3.6"><title>backward, 2048 x 256 (16,384 warps): 0.341 ms</title></circle>
+    <circle cx="587.3" cy="166.9" r="3.6"><title>backward, 2048 x 512 (32,768 warps): 0.345 ms</title></circle>
+    <circle cx="643.6" cy="161.7" r="3.6"><title>backward, 2048 x 1024 (65,536 warps): 0.356 ms</title></circle>
+    <circle cx="474.5" cy="161.2" r="3.6"><title>backward, 4096 x 64 (8,192 warps): 0.357 ms</title></circle>
+    <circle cx="530.9" cy="155.1" r="3.6"><title>backward, 4096 x 128 (16,384 warps): 0.370 ms</title></circle>
+    <circle cx="587.3" cy="149.4" r="3.6"><title>backward, 4096 x 256 (32,768 warps): 0.382 ms</title></circle>
+    <circle cx="643.6" cy="141.4" r="3.6"><title>backward, 4096 x 512 (65,536 warps): 0.399 ms</title></circle>
+    <circle cx="700.0" cy="138.5" r="3.6"><title>backward, 4096 x 1024 (131,072 warps): 0.405 ms</title></circle>
+  </g>
+  <g fill="#1c7ed6">
+    <circle cx="98.1" cy="254.8" r="3.6"><title>forward, 40 x 64 (80 warps): 0.159 ms</title></circle>
+    <circle cx="154.5" cy="274.7" r="3.6"><title>forward, 40 x 128 (160 warps): 0.117 ms</title></circle>
+    <circle cx="210.9" cy="274.7" r="3.6"><title>forward, 40 x 256 (320 warps): 0.117 ms</title></circle>
+    <circle cx="267.2" cy="270.4" r="3.6"><title>forward, 40 x 512 (640 warps): 0.126 ms</title></circle>
+    <circle cx="323.6" cy="249.6" r="3.6"><title>forward, 40 x 1024 (1,280 warps): 0.170 ms</title></circle>
+    <circle cx="154.5" cy="274.2" r="3.6"><title>forward, 80 x 64 (160 warps): 0.118 ms</title></circle>
+    <circle cx="210.9" cy="274.2" r="3.6"><title>forward, 80 x 128 (320 warps): 0.118 ms</title></circle>
+    <circle cx="267.2" cy="270.9" r="3.6"><title>forward, 80 x 256 (640 warps): 0.125 ms</title></circle>
+    <circle cx="323.6" cy="250.6" r="3.6"><title>forward, 80 x 512 (1,280 warps): 0.168 ms</title></circle>
+    <circle cx="380.0" cy="248.7" r="3.6"><title>forward, 80 x 1024 (2,560 warps): 0.172 ms</title></circle>
+    <circle cx="192.7" cy="270.4" r="3.6"><title>forward, 128 x 64 (256 warps): 0.126 ms</title></circle>
+    <circle cx="249.1" cy="273.3" r="3.6"><title>forward, 128 x 128 (512 warps): 0.120 ms</title></circle>
+    <circle cx="305.5" cy="258.6" r="3.6"><title>forward, 128 x 256 (1,024 warps): 0.151 ms</title></circle>
+    <circle cx="361.8" cy="256.3" r="3.6"><title>forward, 128 x 512 (2,048 warps): 0.156 ms</title></circle>
+    <circle cx="418.2" cy="248.7" r="3.6"><title>forward, 128 x 1024 (4,096 warps): 0.172 ms</title></circle>
+    <circle cx="249.1" cy="273.7" r="3.6"><title>forward, 256 x 64 (512 warps): 0.119 ms</title></circle>
+    <circle cx="305.5" cy="258.6" r="3.6"><title>forward, 256 x 128 (1,024 warps): 0.151 ms</title></circle>
+    <circle cx="361.8" cy="257.2" r="3.6"><title>forward, 256 x 256 (2,048 warps): 0.154 ms</title></circle>
+    <circle cx="418.2" cy="251.5" r="3.6"><title>forward, 256 x 512 (4,096 warps): 0.166 ms</title></circle>
+    <circle cx="474.5" cy="249.2" r="3.6"><title>forward, 256 x 1024 (8,192 warps): 0.171 ms</title></circle>
+    <circle cx="305.5" cy="258.1" r="3.6"><title>forward, 512 x 64 (1,024 warps): 0.152 ms</title></circle>
+    <circle cx="361.8" cy="256.3" r="3.6"><title>forward, 512 x 128 (2,048 warps): 0.156 ms</title></circle>
+    <circle cx="418.2" cy="251.1" r="3.6"><title>forward, 512 x 256 (4,096 warps): 0.167 ms</title></circle>
+    <circle cx="474.5" cy="251.5" r="3.6"><title>forward, 512 x 512 (8,192 warps): 0.166 ms</title></circle>
+    <circle cx="530.9" cy="249.2" r="3.6"><title>forward, 512 x 1024 (16,384 warps): 0.171 ms</title></circle>
+    <circle cx="361.8" cy="257.2" r="3.6"><title>forward, 1024 x 64 (2,048 warps): 0.154 ms</title></circle>
+    <circle cx="418.2" cy="250.6" r="3.6"><title>forward, 1024 x 128 (4,096 warps): 0.168 ms</title></circle>
+    <circle cx="474.5" cy="251.1" r="3.6"><title>forward, 1024 x 256 (8,192 warps): 0.167 ms</title></circle>
+    <circle cx="530.9" cy="251.1" r="3.6"><title>forward, 1024 x 512 (16,384 warps): 0.167 ms</title></circle>
+    <circle cx="587.3" cy="248.7" r="3.6"><title>forward, 1024 x 1024 (32,768 warps): 0.172 ms</title></circle>
+    <circle cx="418.2" cy="251.1" r="3.6"><title>forward, 2048 x 64 (4,096 warps): 0.167 ms</title></circle>
+    <circle cx="474.5" cy="250.6" r="3.6"><title>forward, 2048 x 128 (8,192 warps): 0.168 ms</title></circle>
+    <circle cx="530.9" cy="251.1" r="3.6"><title>forward, 2048 x 256 (16,384 warps): 0.167 ms</title></circle>
+    <circle cx="587.3" cy="251.5" r="3.6"><title>forward, 2048 x 512 (32,768 warps): 0.166 ms</title></circle>
+    <circle cx="643.6" cy="247.3" r="3.6"><title>forward, 2048 x 1024 (65,536 warps): 0.175 ms</title></circle>
+    <circle cx="474.5" cy="251.1" r="3.6"><title>forward, 4096 x 64 (8,192 warps): 0.167 ms</title></circle>
+    <circle cx="530.9" cy="251.5" r="3.6"><title>forward, 4096 x 128 (16,384 warps): 0.166 ms</title></circle>
+    <circle cx="587.3" cy="251.1" r="3.6"><title>forward, 4096 x 256 (32,768 warps): 0.167 ms</title></circle>
+    <circle cx="643.6" cy="248.7" r="3.6"><title>forward, 4096 x 512 (65,536 warps): 0.172 ms</title></circle>
+    <circle cx="700.0" cy="238.8" r="3.6"><title>forward, 4096 x 1024 (131,072 warps): 0.193 ms</title></circle>
+  </g>
+  <circle cx="418.2" cy="251.1" r="7" fill="none" stroke="#212529" stroke-width="1.3"/>
+  <text x="418.2" y="275.1" font-size="11" fill="#212529" text-anchor="middle">512 x 256 (forward's launch)</text>
+  <circle cx="361.8" cy="172.6" r="7" fill="none" stroke="#212529" stroke-width="1.3"/>
+  <text x="361.8" y="158.6" font-size="11" fill="#212529" text-anchor="middle">128 x 512 (backward's launch)</text>
+  <text x="210.9" y="292.7" font-size="11" fill="#1c7ed6" text-anchor="middle">40 x 256: 0.117</text>
+  <text x="249.1" y="218.0" font-size="11" fill="#e8590c" text-anchor="middle">0.275</text>
+  <circle cx="560" cy="108" r="4" fill="#1c7ed6"/><text x="570" y="112" fill="#212529">forward</text>
+  <circle cx="560" cy="127" r="4" fill="#e8590c"/><text x="570" y="131" fill="#212529">backward</text>
+  <text x="20" y="406" font-size="11" fill="#868e96">One run. Left of the first dashed line the rows of each SM fit in its L1: the forward takes 0.117-0.126 ms there (0.159 at 80 warps), 0.151-0.193 beyond.</text>
+</svg>

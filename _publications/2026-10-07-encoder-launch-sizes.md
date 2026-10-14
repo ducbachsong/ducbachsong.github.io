@@ -1,9 +1,11 @@
 ---
-title: "How many threads? Launch sizes for GPT-2's encoder kernels on a T4"
+title: "How many threads? Launch sizes for GPT-2's encoder and LayerNorm kernels on a T4"
 collection: publications
 date: 2026-10-07
+modified: 2026-10-14
+version: 4
 permalink: /research/encoder-launch-sizes/
-excerpt: "GPT-2's encoder as three CUDA kernels, timed on a Tesla T4 with 32 launch sizes each, in 16 runs. Every launch gives the same result. With fewer threads than the 40,960 a T4 holds at once, the backward into the token table, which loaded one float at a time, slowed down 2.2-2.7x; the others hardly at all. A bytes-in-flight model predicted the order, and a test that changed only the load width confirmed the cause: with one float4 per load the slow-down fell to 1.02-1.06x, so the kernel now loads float4s. Two surprises: without a warm-up the GPU clock made the first measurements unreliable, and one launch, 768 blocks of 128 threads, runs the forward 12% faster for a reason not yet known."
+excerpt: "GPT-2's encoder as three CUDA kernels, timed on a Tesla T4 with 32 launch sizes each, in 16 runs. Every launch gives the same result. With fewer threads than the 40,960 a T4 holds at once, the backward into the token table, which loaded one float at a time, slowed down 2.2-2.7x; the others hardly at all. A bytes-in-flight model predicted the order, and a test that changed only the load width confirmed the cause: with one float4 per load the slow-down fell to 1.02-1.06x, so the kernel now loads float4s. Part 2 (version 4) does the same for GPT-2's LayerNorm kernels and finds the opposite: both are fastest with far fewer warps than a T4 holds, most likely because each row is read again from the L1 cache. PyTorch's own launch rule stays inside the cache; my kernels can beat it with a launch chosen for this shape and a backward fused into one kernel."
 read_time: true
 tags:
   - cuda
@@ -31,6 +33,19 @@ because the GPU's clock was still rising after seconds of idling: measurements n
 And one launch, **768 blocks of 128 threads, runs the forward 12% faster** than the 512 × 1,024 the
 code uses, in all 11 runs that tried it, for a reason I have not found yet.
 
+**Part 2: LayerNorm.** The same test on GPT-2's two LayerNorm kernels, which read each row of 768
+numbers two or three times, gives the opposite picture. All 40 launches give the same result, but
+**both kernels are fastest with far fewer warps than a T4 holds**: the forward 30% and the backward
+17% faster than with the launches the code uses. Most likely the re-reads of a row come from the SM's
+L1 cache only while the rows an SM works on fit in it. PyTorch, which works out its launch from the
+tensor's shape, gives each row a block of 4 warps and so stays inside the cache without knowing the
+GPU; at my usual launch its forward was as fast as mine or faster. My backward was 1.09–1.35x faster
+than PyTorch's, most likely because it is one kernel that moves about half the bytes, not because of
+its launch.
+
+*Version 4, October 14, 2026: adds part 2, LayerNorm ([Section 11](#11-part-2-layernorm)). What each
+version changed is listed under [Versions](#versions).*
+
 * TOC
 {:toc}
 
@@ -50,6 +65,9 @@ layer, uses the same launch. I asked two questions that the [note](/posts/gpu-th
 the kernels faster, and how far can the numbers move before something goes wrong? The first answer
 raised a third question, why the kernels react so differently, and most of this entry is about
 answering that one properly: with a prediction made before the run, not an explanation fitted after.
+Part 2 (Section 11), added a week later, asks the same questions of the next kernels of the trainer,
+LayerNorm's, and a fourth: PyTorch works out its own launch, so why can a kernel with a launch of its
+own be faster?
 
 **Contributions.**
 
@@ -62,6 +80,9 @@ answering that one properly: with a prediction made before the run, not an expla
    (Sections 6.2–6.3). The encoder's kernel was changed as a result.
 5. Two lessons about measuring: a GPU needs a warm-up before short kernels are timed (Section 6.4),
    and launches should be compared inside one run, not across runs (Section 6.6).
+6. Part 2: the same test for GPT-2's two LayerNorm kernels at 40 launch sizes, where fewer warps is
+   faster, and a comparison with PyTorch's kernels and the launch PyTorch works out itself
+   (Section 11).
 
 ## 2. Background
 
@@ -517,7 +538,7 @@ norm [4], not in any one kernel.
 - **The 20-step tests** that time `encoder_forward` and `encoder_backward` have no warm-up; their
   backward varied from 0.245 to 0.282 ms across batch C's runs, while part 4's two backward kernels at
   the same launch added up to 0.240–0.245 ms.
-- **Versions.** The PyTorch, CUDA and driver versions of the Colab sessions were not recorded.
+- **Software versions.** The PyTorch, CUDA and driver versions of the Colab sessions were not recorded.
 
 ## 9. Future work
 
@@ -540,6 +561,301 @@ bytes at a time took 2.2–2.7x as long at 5,120 threads, and the same kernel lo
 1.02–1.06x. That test confirmed the explanation and changed the code. Along the way, the GPU's clock
 turned out to need a warm-up before measuring, and one launch, 768 × 128, runs the forward 12% faster
 for a reason still to be found. The launch the code uses, 512 blocks of 1,024 threads, stays.
+
+## 11. Part 2: LayerNorm
+
+*Added in version 4, October 14, 2026.*
+
+Part 1 ended with a rule: launch at least as many threads as the GPU holds, and a few times more does
+no harm. LayerNorm, the next kernels of the trainer, breaks it. This part runs the same test on them,
+explains the result as far as one run allows, and compares them with PyTorch's kernels, which choose
+their own launch from the tensor's shape.
+
+### 11.1 The two kernels
+
+LayerNorm moves each row of 768 numbers, one token, to mean 0 and standard deviation 1, then scales
+and shifts each column [13]:
+
+$$
+\text{norm} = (x - \text{mean}) \cdot \text{rstd}, \qquad \text{rstd} = \frac{1}{\sqrt{\text{variance} + 10^{-5}}}, \qquad \text{output} = \text{norm} \cdot \text{weight} + \text{bias}
+$$
+
+GPT-2 small runs 25 of them in every forward pass. The code is in
+[`llmc/kernels/layer_norm.cuh`](https://github.com/ducbachsong/gpt2-small/blob/c730f66/llmc/kernels/layer_norm.cuh)
+(commit [`c730f66`](https://github.com/ducbachsong/gpt2-small/tree/c730f66)); the backward's formula
+is derived step by step in the [note on LayerNorm's backward](/posts/layer-norm-backward/) [13]. Both
+kernels give each row to one warp of 32 threads, which walks it a `float4` at a time and adds up a
+sum across its threads with five shuffles; no other warp and no shared memory is involved:
+
+| kernel | launch in the code | passes over a row | bytes to and from GPU memory |
+|---|---|---|---|
+| **forward** | 512 × 256: 4,096 warps, one row each | 3: the mean, the variance around it, the output | `input` read, `output` written: 25.2 MB |
+| **backward** | 128 × 512: 2,048 warps, two rows each | 2: two sums over the row, then the three gradients | `input` and `output_grad` read, `input_grad` read and written (it adds onto it): 50.3 MB |
+
+*Table 15. The two kernels at GPT-2 small's sizes, 4 × 1,024 = 4,096 rows of 768; a tensor of that
+shape is 12.6 MB, one row of it 3 KB. The backward also sums `weight_grad` and `bias_grad` over all
+rows: each block adds its rows into a copy in shared memory, then adds the copy into GPU memory once.*
+
+Every pass after the first reads the row again. Whether that costs a trip to GPU memory depends on
+whether the row is still in the SM's L1 cache, and that is where the launch comes in. Both kernels
+use 64 registers per thread (the test prints it), so an SM holds at most 65,536 / 64 = 1,024 of
+their threads, 32 warps: the same limit as in Table 2.
+
+### 11.2 Method
+
+Part 4 of
+[`tests/test_layer_norm.cu`](https://github.com/ducbachsong/gpt2-small/blob/c730f66/tests/test_layer_norm.cu)
+is Section 3's test for these kernels: it launches each kernel directly with any
+`<<<blocks, threads>>>`, keeps the GPU busy for one second first (Section 6.4), times runs 2–20 and
+checks the result. The sizes:
+
+| blocks | 40, 80, 128, 256, 512, 1,024, 2,048, 4,096 |
+|---|---|
+| threads per block | 64, 128, 256, 512, 1,024 |
+
+That is from 80 warps (40 × 64) to 131,072 (4,096 × 1,024). Blocks of 64 threads are in because one
+warp per row makes small blocks natural; 128 and 512 blocks are the two launches the code uses. Part
+1 of the same test times 20 forwards and backwards of mine against PyTorch's `layer_norm` with
+autograd, at the same sizes, without a warm-up.
+
+| run | test | what it adds |
+|---|---|---|
+| D1 | before `c730f66` | the 20-step timing; then stops at a test of numbers worked out by hand whose bias was typed as 1 instead of 0 (the test's error: the kernel gave norm + 1, as asked) |
+| D2 | `c730f66` without part 4 | every check and the 20-step timing |
+| D3 | `c730f66` | everything, with part 4 |
+
+*Table 16. Batch D, three runs on Colab. The kernels are the same in all three. D1 averaged its 20
+steps from step 2; its numbers here are recomputed from its log for steps 3–20, as in D2 and D3
+(Table 23 says why step 2 is left out).*
+
+**The prediction.** Before D3 ran, the test's comment predicted what part 1 had found for the
+encoder: with fewer warps than the 1,280 a T4 holds, each warp takes many rows one after another, so
+the time should go up. It did not.
+
+### 11.3 Correctness
+
+All 40 launches gave the same result as the usual ones: `output`, `mean`, `rstd` and `input_grad`
+equal to the last bit, as they should be, because a row is always one warp's and its threads add in
+the same order whatever the launch; `weight_grad` and `bias_grad` within $$10^{-5}$$, because their
+`atomicAdd`s land in any order (the criteria of Table 5). The rest of the test passed in D2 and D3:
+both kernels against PyTorch within $$3 \times 10^{-7}$$, and within $$3 \times 10^{-6}$$ after 20
+backwards added up at GPT-2 small's size; and eight tests of numbers worked out by hand, among them
+4,096 rows adding into one `bias_grad` without losing anything.
+
+### 11.4 Results: fewer warps is faster
+
+![LayerNorm kernel time against warps launched](/images/encoder-launch-sizes/fig4-layernorm-warps.svg)
+*Figure 4. Run D3: the 80 timings (2 kernels × 40 launches) against the warps launched. The rings
+mark the launches the code uses; the dashed lines mark where an SM's rows of `input` fill 64 KB, and
+where the T4 is full.*
+
+| warps launched | rows per SM | forward | backward |
+|---:|---:|---:|---:|
+| 80 | 2 | 0.159 | 0.962 |
+| 160 | 4 | 0.117–0.118 | 0.480–0.507 |
+| 256 | 6.4 | 0.126 | 0.368 |
+| 320 | 8 | **0.117**–0.118 | 0.286–0.299 |
+| 512 | 12.8 | 0.119–0.120 | **0.275** |
+| 640 | 16 | 0.125–0.126 | 0.284–0.288 |
+| 1,024 | 25.6 | 0.151–0.152 | 0.313–0.345 |
+| 1,280 | 32 | 0.168–0.170 | 0.318–0.320 |
+| 2,048 (the backward's launch) | 32 | 0.154–0.156 | 0.318–0.333 |
+| 4,096 (the forward's launch) | 32 | 0.166–0.172 | 0.314–0.345 |
+| 8,192–131,072 | 32 | 0.166–0.193 | 0.328–0.405 |
+
+*Table 17. Run D3, in ms. Launches with the same number of warps took about the same time and are
+grouped; the full table is in the log. "Rows per SM": the rows the SMs work on at once, the warps
+launched spread over 40 SMs, at most 32.*
+
+| | the code's launch | fastest launch | faster by | bandwidth |
+|---|---|---|---:|---|
+| forward | 512 × 256: 0.167 ms | 40 × 256: 0.117 ms | 30% | 151 → 215 GB/s, 47 → 67% of the peak |
+| backward | 128 × 512: 0.333 ms | 256 × 64 or 128 × 128: 0.275 ms | 17% | 151 → 183 GB/s, 47 → 57% |
+
+*Table 18. Bandwidth: the bytes of Table 15 divided by the time.*
+
+**Up to 16 rows per SM, the forward is flat at 0.117–0.126 ms; from 25.6 it takes 0.151 ms or
+more.** With very few rows per SM both kernels slow down, as part 1's did: the forward only at 2
+(0.159 ms), the backward already at 4–6.4 (0.368–0.507 ms) and by 3.5x at 2. Far beyond the T4's
+capacity the backward slows down again as blocks grow in number, to 0.357–0.405 ms at 4,096 blocks:
+every block adds its 2 × 768 sums into GPU memory, even a block with no row, 6.3 million
+`atomicAdd`s at 4,096 blocks against 196,608 at 128. One thing I cannot explain: with 32 rows per SM
+in every case, the forward took 0.154–0.156 ms at 2,048 warps but 0.166–0.172 ms at 1,280 and 4,096.
+One run cannot say whether that repeats.
+
+### 11.5 Why: the rows an SM works on, and its L1 cache
+
+A Turing SM has 96 KB of on-chip memory, split between shared memory and the L1 cache as either
+32 KB + 64 KB or 64 KB + 32 KB [14]. So an SM keeps at most 64 KB of what it reads in L1. A row of
+`input` is 3 KB:
+
+| rows per SM | the forward's rows of `input` | fit in 64 KB? | forward |
+|---:|---:|---|---:|
+| 8 | 24 KB | yes | 0.117–0.118 ms |
+| 16 | 48 KB | yes | 0.125–0.126 ms |
+| 25.6 | 77 KB | no | 0.151–0.152 ms |
+| 32 | 96 KB | no | 0.154–0.193 ms |
+
+*Table 19. 64 KB holds 21 rows of 3 KB; the forward's time steps up between 16 and 25.6 rows.*
+
+The forward reads every row three times. While the rows an SM is working on fit in its L1, passes 2
+and 3 find them there, and GPU memory sees each byte about once: 25.2 MB in 0.117 ms is 215 GB/s,
+67% of the peak, close to part 1's kernels, which read each byte once. When the rows do not fit,
+they are pushed out of L1 before their second and third pass, and those passes go to the L2 cache or
+to GPU memory. One warp per row at the usual launch is 32 rows per SM, 96 KB: outside.
+
+This also says why the encoder behaved the other way. Its kernels read each byte once; with nothing
+to read again, nothing is lost when the cache overflows, and more threads only mean more loads in
+flight. LayerNorm reads each row again, so more rows at once means fewer of them still cached when
+they are needed.
+
+The backward fits only roughly. Its rows are 6 KB, a row of `input` and one of `output_grad`, so
+64 KB holds 10.7; its best times are at 8–16 rows per SM (0.275–0.299 ms), around and past that
+point, and beyond it the time rises more slowly than the forward's. It does more work per row than
+the forward, two `atomicAdd`s per value into shared memory and more arithmetic, so it may need more
+rows in flight to keep memory busy; that is a guess.
+
+What would show the explanation wrong: L1 hit rates that do not drop between 16 and 25.6 rows per
+SM, or a forward that reads each row once, from registers, and still runs faster with fewer warps.
+Neither has been measured yet (Section 11.9).
+
+### 11.6 PyTorch works out its own launch
+
+A caller of `torch.layer_norm` never gives a launch; PyTorch's C++ code works one out from the
+tensor's shape just before it launches [12]. For GPT-2 small's 4,096 rows of 768, in every release
+from 2.12.0 to 2.14.1 (the code is the same there):
+
+| | PyTorch's rule | for 4,096 rows of 768 | rows per SM |
+|---|---|---|---:|
+| forward | one block per row; 4 warps per block (`num_threads()` = 4 × 32) | 4,096 × 128 | at most 8 |
+| backward: `input_grad` | one block per row, 128 threads | 4,096 × 128 | at most 8 |
+| backward: `weight_grad`, `bias_grad` | a second kernel; for 256 rows or more, blocks of 32 × 32 threads, one per 32 columns, each walking down every row | 24 × 1,024 | — |
+
+*Table 20. From `aten/src/ATen/native/cuda/layer_norm_kernel.cu` [12]. "At most 8": an SM holds
+1,024 threads, 8 blocks of 128, fewer if the kernel needs more than 64 registers per thread. The
+weight and bias kernel uses smaller tiles for fewer rows, and splits the rows over blocks when there
+are very many rows and few columns. PyTorch's main branch, since October 13, 2026, also launches
+fewer warps for rows of 256 numbers or fewer; 768 is not one.*
+
+Compared with my kernels:
+
+| | mine (`c730f66`) | PyTorch |
+|---|---|---|
+| a row is worked on by | one warp | one block of 4 warps |
+| a row's sums are added | with 5 shuffles | with 5 shuffles, then across the 4 warps in shared memory, with `__syncthreads()` |
+| rows per SM at the usual launch | 32 | at most 8 |
+| forward: passes over a row | 3 | 2: the mean and variance in one pass, with Welford's method [15] |
+| backward: `input_grad` | two passes: two sums over the row, then `input_grad` | the same |
+| backward: `weight_grad`, `bias_grad` | in the same kernel | a second kernel, which reads `output_grad` and `input` again |
+| backward: adding onto earlier gradients | in the kernel: `input_grad` is read and written | a separate addition onto `.grad` (below) |
+
+*Table 21. What differs.*
+
+So PyTorch's rule, written for every shape and every GPU at once, happens to keep at most 8 rows per
+SM: 24 KB of `input` in the forward and 48 KB in the `input_grad` kernel, inside L1, where my kernels
+are fastest. It gets there without knowing the GPU, because it gives each row a whole block. The
+price is the step across 4 warps for every row, and, in the backward, two kernels.
+
+**The extra addition.** The 20-step test lets PyTorch add 20 backwards onto `.grad`, and at the end
+`.grad` equals my `input_grad` (Section 11.3). Eager PyTorch adds each new gradient onto `.grad` as a
+separate step after the backward's kernels; for `input` that is an addition over 3.1 million numbers
+that reads two tensors and writes one. My kernel adds onto `input_grad` in the same pass that
+computes it. Counting bytes for one backward from step 2 on:
+
+| | mine | PyTorch |
+|---|---|---|
+| `input_grad` | 50.3 MB, one kernel, the addition included | 37.7 MB (`input_grad` kernel) + 37.7 MB (the addition onto `.grad`) |
+| `weight_grad`, `bias_grad` | in the same kernel | 25.2 MB (second kernel) |
+| **total** | **50.3 MB** | **≈ 100.7 MB** |
+
+*Table 22. Bytes to and from GPU memory for one backward, counting each pass after the first as a
+cache hit. The addition onto `.grad` is inferred from how eager PyTorch accumulates gradients, not
+profiled.*
+
+### 11.7 Against PyTorch
+
+| run | my forward | PyTorch forward | my backward | PyTorch backward |
+|---|---:|---:|---:|---:|
+| D1 | 0.181 | 0.184 | 0.499 | 0.542 |
+| D2 | 0.179 | 0.173 | 0.463 | 0.540 |
+| D3 | 0.176 | 0.155 | 0.373 | 0.504 |
+| PyTorch takes | | 0.88–1.02x | | 1.09–1.35x |
+
+*Table 23. The 20-step test at the usual launches, mean of steps 3–20 in ms, no warm-up. In every
+run PyTorch's backward took 25.0–26.6 ms at step 2 and about 0.5 ms at every other step: step 2 is
+its first addition onto the `.grad` that step 1 made, most likely the first use of the kernel that
+adds. Left in, that one step made PyTorch's average look 3.8 times mine in D1.*
+
+**The forward: the launch decides.** Both move the same 25.2 MB. At my usual launch PyTorch's
+forward was as fast as mine in D1 and D2 and 12% faster in D3. Two things favour it: its rows fit in
+L1 and mine do not (Section 11.5), and it reads each row twice, not three times. At my fastest
+launch, 40 × 256, my forward took 0.117 ms in D3's part 4, against PyTorch's 0.155 ms in the same
+run's 20-step test. Those two were not measured side by side: part 4 runs after a warm-up and the
+20-step test without one, and in D3 my usual launch took 0.167 ms in part 4 and 0.176 ms in the
+20-step test, 5% apart. Allowing for that, my forward at 40 × 256 is about 1.25x as fast as
+PyTorch's: a launch that keeps its rows in L1, and rows that need no step across warps.
+
+**The backward: fusion decides.** My backward was 1.09–1.35x faster at its usual launch. By Table
+22, PyTorch moves about twice the bytes, and it moves them faster than mine: ≈ 100.7 MB in 0.504 ms
+is about 200 GB/s in D3, against my 50.3 MB in 0.373 ms, 135 GB/s. So the lead comes from fusing the
+backward into one kernel, not from its launch. The launch would add to it: 0.275 against 0.333 ms in
+part 4, 17%.
+
+**So why can a kernel with a launch of its own be faster than PyTorch, which works out its own?**
+
+1. PyTorch's rules are written for every shape and every GPU at once: one block of 4 warps per row,
+   whether the row has 768 numbers or 100,000. For 768 on a T4 the rule is a good one, mostly because
+   it keeps few rows per SM, but it pays for its generality with a step across warps for every row.
+2. A kernel written for one shape can choose for that shape: one warp per row, which needs no shared
+   memory and no `__syncthreads()`, and as many rows per SM as the L1 holds. That choice comes from a
+   measurement, not a rule: 40 × 256 suits a T4's 40 SMs and 64 KB of L1, not an A100's 108 SMs.
+3. Owning the whole backward lets a kernel fuse what a library keeps apart: the weight and bias
+   gradients, and the addition onto earlier gradients. That halves the bytes, and in the backward it
+   is worth more than the launch.
+4. Choosing for oneself also means choosing badly. My usual launch, one warp per row with the GPU
+   filled, lost the forward to PyTorch, and only the measurement showed it.
+
+### 11.8 Threats to validity
+
+- **One run of part 4.** Part 1 found that small differences repeat over runs while whole runs move
+  by up to 6%. The differences here are 17–30%, but one run cannot show how much they move, and the
+  2,048-warp oddity of Section 11.4 may be noise.
+- **The cache explanation** is inferred from where the forward's time steps up; no L1 hit rate was
+  measured. The backward fits it only roughly.
+- **Mixed conditions.** The 1.25x for the forward compares part 4, after a warm-up, with the 20-step
+  test, without one; the 5% correction comes from one run.
+- **PyTorch's launches** are read from its source, the same for this shape from 2.12.0 to 2.14.1.
+  PyTorch's kernels were not profiled on Colab, and Colab's PyTorch version was not recorded; their
+  registers per thread, and so whether 8 of their blocks fit an SM, are unknown.
+- **The addition onto `.grad`** is inferred, not profiled. Without it PyTorch's backward would move
+  ≈ 63 MB, at ≈ 125 GB/s, and its lead would be less clearly a matter of bytes.
+- **Rows per SM** is the warps launched spread evenly over 40 SMs; how the T4 actually places blocks,
+  and how many of the backward's small blocks fit beside their shared memory, was not checked.
+
+### 11.9 Future work
+
+- **Test the cache explanation**: a forward whose threads keep their 6 `float4`s of the row in
+  registers and read it once. If the cache is the cause, it should take about the same time at
+  512 × 256 as at 40 × 256. And Nsight Compute's L1 hit rate at both launches.
+- **Time PyTorch side by side** with my kernels, both after the warm-up, at the usual and the fastest
+  launch; and profile PyTorch's kernels on Colab (grid, block, registers, time of each), with its
+  version recorded.
+- **Repeat part 4** over several runs.
+- **Then choose the launch from the GPU**: rows per SM from the L1 size and the bytes a row needs,
+  blocks from the SM count, instead of a fixed 512 × 256 and 128 × 512.
+
+### 11.10 Conclusion
+
+LayerNorm's kernels give the same result with all 40 launches tried, to the last bit for the forward
+and `input_grad`. Unlike the encoder's, they are fastest with far fewer warps than a T4 holds: the
+forward takes 0.117 ms with 8 rows per SM and 0.167 ms with the 32 of its usual launch, the backward
+0.275 against 0.333 ms. Most likely the re-reads of each row stop finding it in L1 once an SM's rows
+pass 64 KB. PyTorch, which works out its launch from the shape, gives each row a block of 4 warps and
+so keeps at most 8 rows per SM without knowing the GPU; at my usual launch its forward was as fast as
+mine or faster. Mine is faster where it does what PyTorch's general code does not: a launch chosen
+for this shape on this GPU, about 1.25x for the forward, and a backward fused into one kernel that
+moves half the bytes, 1.09–1.35x. The launches in the code stay until the cache explanation is
+tested.
 
 ## Reproducibility
 
@@ -571,6 +887,20 @@ nvidia-smi --query-gpu=timestamp,clocks.sm,clocks.mem,temperature.gpu,power.draw
 kill %1
 ```
 
+**Part 2** is at commit [`c730f66`](https://github.com/ducbachsong/gpt2-small/tree/c730f66) (batch D,
+run D3), built the same way, with `TORCH` and `ABI` set as above and `-arch=native`, which builds for
+the GPU in the machine, sm_75 on a T4:
+
+```bash
+git checkout c730f66
+nvcc -O3 -std=c++17 -arch=native tests/test_layer_norm.cu -o test_layer_norm \
+    -D_GLIBCXX_USE_CXX11_ABI=$ABI \
+    -I$TORCH/include -I$TORCH/include/torch/csrc/api/include \
+    -L$TORCH/lib -Xlinker --no-as-needed -ltorch -ltorch_cuda -ltorch_cpu -lc10_cuda -lc10 \
+    -Xlinker -rpath=$TORCH/lib
+./test_layer_norm
+```
+
 ## References
 
 1. A. Radford, J. Wu, R. Child, D. Luan, D. Amodei, I. Sutskever. *Language Models are Unsupervised
@@ -593,6 +923,15 @@ kill %1
 9. J. D. C. Little. *A Proof for the Queuing Formula: L = λW.* Operations Research 9(3), 1961.
 10. NVIDIA. *NVIDIA Turing GPU Architecture* (whitepaper: the TU104's 4 MB L2 cache). 2018.
 11. V. Volkov. *Better Performance at Lower Occupancy.* GPU Technology Conference, 2010.
+12. PyTorch. `aten/src/ATen/native/cuda/layer_norm_kernel.cu`, releases v2.12.0 to v2.14.1 (the
+    launches for LayerNorm's forward, its `input_grad` and its weight and bias gradients).
+    [github.com/pytorch/pytorch](https://github.com/pytorch/pytorch/blob/v2.14.1/aten/src/ATen/native/cuda/layer_norm_kernel.cu)
+13. D. B. Song. *LayerNorm backward, broken down and rebuilt: nine chain-rule steps and one formula.*
+    2026. [/posts/layer-norm-backward/](/posts/layer-norm-backward/)
+14. NVIDIA. *Turing Tuning Guide* (the unified 96 KB of L1 and shared memory per SM, and its two
+    splits). [docs.nvidia.com](https://docs.nvidia.com/cuda/turing-tuning-guide/)
+15. B. P. Welford. *Note on a Method for Calculating Corrected Sums of Squares and Products.*
+    Technometrics 4(3), 1962.
 
 ## Appendix A. Raw logs
 
@@ -605,3 +944,16 @@ Index: [README.txt](/files/encoder-launch-sizes/README.txt).
 | [c-run1.log](/files/encoder-launch-sizes/c-run1.log) … [c-run5.log](/files/encoder-launch-sizes/c-run5.log) | batch C, commit `e84ce51`: every check, the timings, parts 4 and 5, 5 runs |
 | [c-clocks-run1.csv](/files/encoder-launch-sizes/c-clocks-run1.csv) … [c-clocks-run5.csv](/files/encoder-launch-sizes/c-clocks-run5.csv) | batch C: timestamp, SM clock, memory clock (MHz), temperature (°C) and power (W), every 200 ms |
 | [sass-loads-and-atomics.txt](/files/encoder-launch-sizes/sass-loads-and-atomics.txt) | the loads and atomics of each kernel, from `cuobjdump`, with how the program was compiled |
+| [d-run1.log](/files/encoder-launch-sizes/d-run1.log) … [d-run3.log](/files/encoder-launch-sizes/d-run3.log) | part 2, batch D, `tests/test_layer_norm.cu`: every check and the 20-step timing; D3 also part 4, the 2 LayerNorm kernels at 40 launch sizes |
+
+## Versions
+
+The date at the top is when this entry was first published. Each version since is listed here,
+with what it changed.
+
+| version | date | what changed |
+|---|---|---|
+| 1 | October 7, 2026 | First version, from one run: the three encoder kernels at 32 launch sizes, three regions, and a bytes-in-flight model fitted to them. |
+| 2 | October 7, 2026 | Rewritten after 16 runs (batches A–C): the model tested with a float4 load, which changed the kernel; the warm-up; the 768 × 128 forward; corrections to the build note, the forward's loads and the bandwidth figures. |
+| 3 | October 8, 2026 | Section 6.3: what the float4 load changes and what it does not. |
+| 4 | October 14, 2026 | Part 2, LayerNorm (Section 11), against the launch PyTorch works out itself; the title names both kernels; this list. |

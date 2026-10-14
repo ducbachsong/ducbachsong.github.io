@@ -1,6 +1,8 @@
-Raw logs for the post "How many threads? Launch sizes for GPT-2's encoder kernels on a T4" (2026-10-07).
+Raw logs for the post "How many threads? Launch sizes for GPT-2's encoder and LayerNorm kernels on a T4"
+(published 2026-10-07; part 2, LayerNorm, added 2026-10-14 in version 4).
 Code: https://github.com/ducbachsong/gpt2-small (branch c-cuda-trainer). All runs on Google Colab, Tesla T4,
-built with the command in the post (no -arch flag; Colab's nvcc built sm_75 machine code directly).
+built with the command in the post (batches A-C: no -arch flag, Colab's nvcc built sm_75 machine code
+directly; batch D: -arch=native, which on a T4 is sm_75 as well).
 
 a-run1.log .. a-run6.log
     Batch A, commit a1f1b7b. Every check, the two 20-step timings (a Tensor each, one TensorBuffer) and
@@ -28,5 +30,15 @@ sass-loads-and-atomics.txt
 
 An earlier execution of batch C's code, whose logs were not kept, printed the same picture: float loads
 2.10-2.47x and float4 loads 1.02-1.04x at 5,120 threads, and 768 x 128 at 0.878-0.885 of 512 x 1024.
+
+d-run1.log .. d-run3.log  (part 2, LayerNorm)
+    Batch D, tests/test_layer_norm.cu. The kernels (llmc/kernels/layer_norm.cuh) are those of commit c730f66
+    in all three runs; the test grew between them:
+    d-run1.log  20-step timing averaged over steps 2..20; stops at a hand-worked test whose bias was mistyped
+                as 1 instead of 0 (the test's error: the kernel gave norm + 1, as asked). The post recomputes
+                its 20-step averages over steps 3..20 from the table.
+    d-run2.log  the bias fixed, averages over steps 3..20; no part 4. Everything passes.
+    d-run3.log  commit c730f66 (only part 4's comment differs): everything, with part 4, the 2 kernels at 40
+                launch sizes after a one-second warm-up. Everything passes.
 
 Copied from the notebook output.
