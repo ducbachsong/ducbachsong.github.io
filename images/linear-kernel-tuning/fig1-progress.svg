@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 470" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="860" height="470" fill="#ffffff"/>
+  <text x="20" y="28" font-size="15" font-weight="600" fill="#212529">Our time ÷ PyTorch's, after each change kept (1.0 = as fast as cuBLAS)</text>
+  <text x="20" y="48" fill="#495057">Tesla T4, GPT-2 small sizes: 4096 rows. Each point is one run; both times from the same run.</text>
+  <line x1="80" y1="380.0" x2="670" y2="380.0" stroke="#adb5bd"/>
+  <text x="70" y="384.0" text-anchor="end" fill="#495057">1.0</text>
+  <line x1="80" y1="341.2" x2="670" y2="341.2" stroke="#e9ecef"/>
+  <text x="70" y="345.2" text-anchor="end" fill="#495057">1.1</text>
+  <line x1="80" y1="302.5" x2="670" y2="302.5" stroke="#e9ecef"/>
+  <text x="70" y="306.5" text-anchor="end" fill="#495057">1.2</text>
+  <line x1="80" y1="263.8" x2="670" y2="263.8" stroke="#e9ecef"/>
+  <text x="70" y="267.8" text-anchor="end" fill="#495057">1.3</text>
+  <line x1="80" y1="225.0" x2="670" y2="225.0" stroke="#e9ecef"/>
+  <text x="70" y="229.0" text-anchor="end" fill="#495057">1.4</text>
+  <line x1="80" y1="186.2" x2="670" y2="186.2" stroke="#e9ecef"/>
+  <text x="70" y="190.2" text-anchor="end" fill="#495057">1.5</text>
+  <line x1="80" y1="147.5" x2="670" y2="147.5" stroke="#e9ecef"/>
+  <text x="70" y="151.5" text-anchor="end" fill="#495057">1.6</text>
+  <line x1="80" y1="108.7" x2="670" y2="108.7" stroke="#e9ecef"/>
+  <text x="70" y="112.7" text-anchor="end" fill="#495057">1.7</text>
+  <line x1="80" y1="70.0" x2="670" y2="70.0" stroke="#e9ecef"/>
+  <text x="70" y="74.0" text-anchor="end" fill="#495057">1.8</text>
+  <text x="80.0" y="402" text-anchor="middle" fill="#495057">start</text>
+  <text x="178.3" y="402" text-anchor="middle" fill="#495057">padding</text>
+  <text x="276.7" y="402" text-anchor="middle" fill="#495057">column</text>
+  <text x="276.7" y="417" text-anchor="middle" fill="#495057">halves</text>
+  <text x="375.0" y="402" text-anchor="middle" fill="#495057">dW, dx</text>
+  <text x="375.0" y="417" text-anchor="middle" fill="#495057">split</text>
+  <text x="473.3" y="402" text-anchor="middle" fill="#495057">bias in</text>
+  <text x="473.3" y="417" text-anchor="middle" fill="#495057">outer products</text>
+  <text x="571.7" y="402" text-anchor="middle" fill="#495057">double buffer</text>
+  <text x="571.7" y="417" text-anchor="middle" fill="#495057">+ bounds</text>
+  <text x="670.0" y="402" text-anchor="middle" fill="#495057">forward</text>
+  <text x="670.0" y="417" text-anchor="middle" fill="#495057">groups</text>
+  <polyline points="80.0,161.1 178.3,189.0 276.7,320.7 375.0,330.8 473.3,327.3 571.7,322.3 670.0,344.7" fill="none" stroke="#1971c2" stroke-width="2.5"/>
+  <circle cx="80.0" cy="161.1" r="4" fill="#1971c2"/>
+  <circle cx="178.3" cy="189.0" r="4" fill="#1971c2"/>
+  <circle cx="276.7" cy="320.7" r="4" fill="#1971c2"/>
+  <circle cx="375.0" cy="330.8" r="4" fill="#1971c2"/>
+  <circle cx="473.3" cy="327.3" r="4" fill="#1971c2"/>
+  <circle cx="571.7" cy="322.3" r="4" fill="#1971c2"/>
+  <circle cx="670.0" cy="344.7" r="4" fill="#1971c2"/>
+  <polyline points="80.0,146.3 178.3,150.6 276.7,201.0 375.0,249.8 473.3,300.6 571.7,338.9 670.0,339.7" fill="none" stroke="#e8590c" stroke-width="2.5"/>
+  <circle cx="80.0" cy="146.3" r="4" fill="#e8590c"/>
+  <circle cx="178.3" cy="150.6" r="4" fill="#e8590c"/>
+  <circle cx="276.7" cy="201.0" r="4" fill="#e8590c"/>
+  <circle cx="375.0" cy="249.8" r="4" fill="#e8590c"/>
+  <circle cx="473.3" cy="300.6" r="4" fill="#e8590c"/>
+  <circle cx="571.7" cy="338.9" r="4" fill="#e8590c"/>
+  <circle cx="670.0" cy="339.7" r="4" fill="#e8590c"/>
+  <polyline points="80.0,96.0 178.3,98.7 276.7,221.9 375.0,249.4 473.3,249.4 571.7,233.9 670.0,309.5" fill="none" stroke="#2f9e44" stroke-width="2.5"/>
+  <circle cx="80.0" cy="96.0" r="4" fill="#2f9e44"/>
+  <circle cx="178.3" cy="98.7" r="4" fill="#2f9e44"/>
+  <circle cx="276.7" cy="221.9" r="4" fill="#2f9e44"/>
+  <circle cx="375.0" cy="249.4" r="4" fill="#2f9e44"/>
+  <circle cx="473.3" cy="249.4" r="4" fill="#2f9e44"/>
+  <circle cx="571.7" cy="233.9" r="4" fill="#2f9e44"/>
+  <circle cx="670.0" cy="309.5" r="4" fill="#2f9e44"/>
+  <text x="682.0" y="313.5" fill="#2f9e44" font-weight="600">head forward 1.18</text>
+  <text x="682.0" y="343.7" fill="#e8590c" font-weight="600">qkv backward 1.10</text>
+  <text x="682.0" y="360.7" fill="#1971c2" font-weight="600">qkv forward 1.09</text>
+</svg>
