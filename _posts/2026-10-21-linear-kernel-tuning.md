@@ -2,9 +2,9 @@
 title: "Tuning a matrix multiply on a T4: eighteen runs, what helped, what did not, and the last 10% to cuBLAS"
 date: 2026-10-21
 modified: 2026-10-21
-version: 1
+version: 2
 permalink: /posts/linear-kernel-tuning/
-excerpt: "The linear layer kernel of my GPT-2 trainer started the day at 1.47 times PyTorch's time for one training step's matrix products, and ended it at 1.06. This note goes through every run in order: the idea behind it, the change, what the timing test and the profiler said, and what I kept. Five changes made it faster, five made no difference, two made it slower. The last run compares the kernel with cuBLAS's own at the level of machine code, and edits that machine code by hand to see where the remaining 10% comes from."
+excerpt: "The linear layer kernel of my GPT-2 trainer started the day at 1.47 times PyTorch's time for one training step's matrix products, and ended it at 1.06. This note goes through every run in order: the idea behind it, the change, what the timing test and the profiler said, and what I kept. Five changes made it faster, five made no difference, two made it slower. The last run compares the kernel with cuBLAS's own at the level of machine code, and edits that machine code by hand to see where the remaining 10% comes from. The conclusion: PyTorch's matrix products are NVIDIA's cuBLAS, tuned for years, and the same layer written as four cuBLAS calls takes 0.97 times PyTorch's time, so that is what the trainer will use."
 tags:
   - cuda
   - matmul
@@ -404,11 +404,91 @@ and gives the same results to the last bit.*
 | 14 | no edge checks for full squares | forward 2.3% | no, for simplicity |
 | 15 | cuBLAS's block shape | 6–14% slower | no |
 | 16–18 | hand-edited machine code | 3–4% slower | no |
+| 19 | the same layer made by cuBLAS calls (section 5) | a step 0.97 times PyTorch's | yes, for the trainer |
 
 *Table 20. Every run of the day. Run 13 is the next-values-from-shared-memory idea of Table 13, measured
 by reading the profile instead of running it.*
 
-## 5. What to remember
+## 5. Conclusion: for matrix products, use cuBLAS
+
+### 5.1 Why ours does not reach PyTorch
+
+PyTorch has no matrix multiply of its own. `torch::linear` and its backward call cuBLAS, NVIDIA's library,
+which is also what `ncu` showed running inside the test (Table 15). So every "PyTorch" column in this note
+is really cuBLAS, and *our time ÷ PyTorch's* measures our kernel against NVIDIA's.
+
+That is a hard thing to beat. cuBLAS has been tuned by NVIDIA's engineers for every GPU generation since
+2007, with access to the hardware's exact rules: section 3.3 showed that knowing those rules is what the
+last 10% takes. It holds many kernels for each GPU and picks one for each size: a 128 × 64 square for the
+qkv forward, and a split sum in 5 parts for `dW` (section 3.1). Gray writes that NVIDIA tunes its machine
+code by hand [6]. Our kernel is one design, tuned in one day. Going from 1.47 to 1.06 times cuBLAS's time took
+eighteen runs; the papers that closed the last gap [5–8] first measured the hardware's rules with test
+kernels of their own, then wrote machine code by hand. That is not a short-term job.
+
+### 5.2 Run 19: the same layer made by cuBLAS
+
+To see what using the library gives, I wrote `llmc/kernels/linear_cublas.cuh` [1]: the same
+`linear_forward` and `linear_backward`, called the same way, with each step one cuBLAS call [11]:
+
+| step | cuBLAS call | what it does |
+|---|---|---|
+| forward, `y = x Wᵀ + b` | `cublasLtMatmul`, the bias as its "epilogue" | the product, and the bias added as each value is stored |
+| `dx = dy W` | `cublasSgemm`, beta = 0 | the product, written over `dx` |
+| `dW += dyᵀ x` | `cublasSgemm`, beta = 1 | the product, added onto `dW` |
+| `db += dyᵀ 1` | `cublasSgemv` with a vector of 1s, beta = 1 | each column of `dy` added up, onto `db` |
+
+*Table 21. Four library calls in place of three kernels, 664 lines with their comments. cuBLAS reads matrices by columns and
+we store them by rows, so each call asks for the product the other way round: (A · B)ᵀ = Bᵀ · Aᵀ.*
+
+Its test, `tests/test_linear_cublas.cu`, is the kernel's test with the same cases. Every check passed: the
+products came out the same as PyTorch's to the last bit, so the same cuBLAS kernels ran. Only the bias was
+added in another order (about 1e-6 apart). One bug on the way: cuBLASLt takes each setting as a pointer and a
+size, and the alignment settings are 4 bytes; passed as 8, it stops with "an unsupported value or parameter".
+
+| layer | hand kernel, forward | cuBLAS version, forward | hand kernel, backward | cuBLAS version, backward |
+|---|---|---|---|---|
+| qkv | 1.091 | **0.988** | 1.104 | **0.971** |
+| attention output | 1.060 | **0.941** | 1.091 | **0.909** |
+| MLP up | 1.100 | **0.994** | 1.086 | **0.973** |
+| MLP down | 1.135 | 1.063 | 1.114 | **0.957** |
+| head | 1.182 | **0.944** | 0.897 | 0.973 |
+| one training step | 1.06 (753 ms against 709) | | **0.97** (731 ms against 751) | |
+
+*Table 22. Our time ÷ PyTorch's, from two runs on a Colab T4; each ratio from one run, so the two compare,
+the raw times do not (PyTorch's own step took 709 ms in one run and 751 in the other: the clock of section
+1.2).*
+
+Two things in Table 22 need a word:
+
+1. **The cuBLAS version is a little under 1.** It runs the same kernels as PyTorch, but adds `dW` and `db`
+   straight onto the gradients (beta = 1). PyTorch's autograd makes each gradient in a new tensor and then
+   adds it onto `.grad`: one more pass over memory, and `db` by a sum kernel of its own. The MLP down
+   forward (1.063) is the one case above 1: there cuBLASLt picked a slower kernel for that size than
+   PyTorch's call did.
+2. **The hand kernel's head backward, 0.897, is under 1 too.** That is ours against PyTorch's whole backward,
+   its extra passes included; it says that on this one size the hand kernels and the extra passes together
+   come out ahead, not that they beat cuBLAS's products.
+
+### 5.3 The decision
+
+For a model that has to train fast, the matrix products should come from cuBLAS:
+
+| | hand kernel, `linear.cuh` | cuBLAS, `linear_cublas.cuh` |
+|---|---|---|
+| a training step's matrix products | 1.06 times PyTorch's | **0.97** |
+| code | 3 kernels, 664 lines with comments | 4 library calls |
+| sizes | multiples of 4, tensors on 16 bytes | **any** |
+| other GPUs | tuned for a T4 | cuBLAS picks for each GPU |
+| what it teaches | everything in this note | how to call a library |
+
+*Table 23. What each version gives.*
+
+The trainer will use `linear_cublas.cuh`. `linear.cuh` stays, as the version this note and [2] explain, and
+as a check: two different codes agreeing with PyTorch to 1e-5 is a strong test of both. The day was not
+wasted on it either: padding, bank conflicts, registers per block, double buffering and L2-friendly block
+order are the same tools for the kernels cuBLAS does not have: LayerNorm, attention, GELU.
+
+## 6. What to remember
 
 1. **Measure the same way each time.** A T4 changes its clock under load and heat. Compare our time ÷
    PyTorch's from the same run, and for small changes use `ncu`, which locks the clock.
@@ -424,20 +504,28 @@ by reading the profile instead of running it.*
    ours waits 7.84 cycles per instruction and cuBLAS's 7.06. Rearranging the machine code by hand moved the
    time by 4% with identical instructions, but the wrong way: beating the compiler needs the hardware's
    exact rules, which NVIDIA has and a simple model from one paper does not.
+6. **"PyTorch's speed" for a matrix product is cuBLAS's speed.** PyTorch calls the library, so matching it
+   means matching NVIDIA's years of tuning. To build a model that trains fast, call cuBLAS for the matrix
+   products, as PyTorch does, and spend the hand-written CUDA on the kernels no library has.
 
-## 6. What is left
+## 7. What is left
 
-1. **Split the sum of `dW`**, as cuBLAS does in 5 parts: `dW` is only 108 blocks for the qkv, 1.35 rounds
+1. **Use `linear_cublas.cuh` in the trainer**, for all 49 linear layers of GPT-2 small.
+2. **Half precision on the tensor cores.** The T4 does about 65 TFLOPS in FP16 on its tensor cores,
+   against 8 in FP32 [8]: that, through cuBLAS, is where large factors are left.
+
+If I come back to the hand kernel, as a study:
+
+3. **Split the sum of `dW`**, as cuBLAS does in 5 parts: `dW` is only 108 blocks for the qkv, 1.35 rounds
    of the GPU, so its second round runs mostly empty.
-2. **Measure the T4's register banks and reuse cache** with small test kernels, as Jia et al. did [4],
+4. **Measure the T4's register banks and reuse cache** with small test kernels, as Jia et al. did [4],
    then reorder the machine code with the real rules.
-3. **Half precision on the tensor cores.** The T4 does about 65 TFLOPS in FP16 on its tensor cores,
-   against 8 in FP32 [8]: that, not a better FP32 kernel, is where large factors are left.
 
 ## References
 
 1. D. B. Song. *gpt2-small*, branch `c-cuda-trainer`: GPT-2 small pre-training in C and CUDA.
-   `llmc/kernels/linear.cuh` and `tests/test_linear.cu`, commits `8ecbae8`, `22c98fb`, `2529933`.
+   `llmc/kernels/linear.cuh` and `tests/test_linear.cu`, commits `8ecbae8`, `22c98fb`, `2529933`;
+   `llmc/kernels/linear_cublas.cuh` and `tests/test_linear_cublas.cu`, commit `8073418`, for section 5.
    [github.com/ducbachsong/gpt2-small](https://github.com/ducbachsong/gpt2-small/tree/c-cuda-trainer)
 2. D. B. Song. *Two ways to multiply matrices: inner products, outer products, and why a GPU kernel uses
    the second.* 2026. [/posts/matmul-outer-product/](/posts/matmul-outer-product/)
@@ -457,3 +545,5 @@ by reading the profile instead of running it.*
    [github.com/cloudcores/CuAssembler](https://github.com/cloudcores/CuAssembler)
 10. S. Boehm. *How to Optimize a CUDA Matmul Kernel for cuBLAS-like Performance: a Worklog.* 2022.
     [siboehm.com/articles/22/CUDA-MMM](https://siboehm.com/articles/22/CUDA-MMM)
+11. NVIDIA. *cuBLAS: the CUDA Basic Linear Algebra Subroutine library*, including cuBLASLt.
+    [docs.nvidia.com/cuda/cublas](https://docs.nvidia.com/cuda/cublas/index.html)
