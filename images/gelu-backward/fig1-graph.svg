@@ -1,0 +1,61 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 300" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+  </defs>
+  <rect width="860" height="300" fill="#ffffff"/>
+  <text x="20" y="26" font-size="15" font-weight="600" fill="#212529">GELU's forward for one value: every use of every value</text>
+  <text x="20" y="44" fill="#495057">Each arrow is one use, labelled with the forward step that makes it (F) and the backward step that goes back along it (B).</text>
+  <text x="20" y="60" fill="#495057">x has two arrows going out: F1 bends it into the gate, and F5 multiplies it by the gate.</text>
+
+  <!-- the arc: x used a second time, by F5 -->
+  <path d="M 70 152 C 70 78, 790 78, 790 150" fill="none" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="430" y="92" text-anchor="middle" fill="#212529">F5 · <tspan fill="#e8590c" font-weight="600">B2</tspan>: y = x · p uses x a second time</text>
+
+  <!-- nodes -->
+  <rect x="30" y="152" width="80" height="36" rx="6" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="70" y="176" text-anchor="middle" font-size="16" font-style="italic" fill="#212529">x</text>
+  <rect x="180" y="152" width="80" height="36" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="220" y="176" text-anchor="middle" font-size="16" font-style="italic" fill="#212529">u</text>
+  <rect x="320" y="152" width="80" height="36" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="360" y="176" text-anchor="middle" font-size="16" font-style="italic" fill="#212529">s</text>
+  <rect x="460" y="152" width="80" height="36" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="500" y="176" text-anchor="middle" font-size="16" font-style="italic" fill="#212529">h</text>
+  <rect x="600" y="152" width="80" height="36" rx="6" fill="#ebfbee" stroke="#2f9e44"/>
+  <text x="640" y="176" text-anchor="middle" font-size="16" font-style="italic" fill="#212529">p</text>
+  <rect x="750" y="152" width="80" height="36" rx="6" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="790" y="176" text-anchor="middle" font-size="16" font-style="italic" fill="#212529">y</text>
+
+  <!-- the chain -->
+  <line x1="110" y1="170" x2="178" y2="170" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="145" y="163" text-anchor="middle" font-size="12" fill="#212529">F1 · <tspan fill="#e8590c" font-weight="600">B6</tspan></text>
+  <line x1="260" y1="170" x2="318" y2="170" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="290" y="163" text-anchor="middle" font-size="12" fill="#212529">F2 · <tspan fill="#e8590c" font-weight="600">B5</tspan></text>
+  <line x1="400" y1="170" x2="458" y2="170" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="430" y="163" text-anchor="middle" font-size="12" fill="#212529">F3 · <tspan fill="#e8590c" font-weight="600">B4</tspan></text>
+  <line x1="540" y1="170" x2="598" y2="170" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="570" y="163" text-anchor="middle" font-size="12" fill="#212529">F4 · <tspan fill="#e8590c" font-weight="600">B3</tspan></text>
+  <line x1="680" y1="170" x2="748" y2="170" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="715" y="163" text-anchor="middle" font-size="12" fill="#212529">F5 · <tspan fill="#e8590c" font-weight="600">B1</tspan></text>
+
+  <!-- what each node is -->
+  <text x="70" y="206" text-anchor="middle" font-size="11" fill="#868e96">input</text>
+  <text x="220" y="206" text-anchor="middle" font-size="11" fill="#868e96">x + 0.044715 x³</text>
+  <text x="360" y="206" text-anchor="middle" font-size="11" fill="#868e96">√(2/π) · u</text>
+  <text x="500" y="206" text-anchor="middle" font-size="11" fill="#868e96">tanh(s)</text>
+  <text x="640" y="206" text-anchor="middle" font-size="11" fill="#868e96">0.5 (1 + h): the gate</text>
+  <text x="790" y="206" text-anchor="middle" font-size="11" fill="#868e96">x · p: output</text>
+
+  <!-- the example, x = 1 -->
+  <text x="20" y="232" font-size="11" fill="#1971c2">x = 1:</text>
+  <text x="70" y="232" text-anchor="middle" font-size="11" fill="#1971c2">1</text>
+  <text x="220" y="232" text-anchor="middle" font-size="11" fill="#1971c2">1.0447150</text>
+  <text x="360" y="232" text-anchor="middle" font-size="11" fill="#1971c2">0.8335620</text>
+  <text x="500" y="232" text-anchor="middle" font-size="11" fill="#1971c2">0.6823840</text>
+  <text x="640" y="232" text-anchor="middle" font-size="11" fill="#1971c2">0.8411920</text>
+  <text x="790" y="232" text-anchor="middle" font-size="11" fill="#1971c2">0.8411920</text>
+
+  <text x="20" y="264" fill="#495057">x is used twice, by F1 and F5, so its gradient has two parts: B2 gives dx<tspan dy="-5" font-size="0.75em">(1)</tspan><tspan dy="5">, B6 gives dx</tspan><tspan dy="-5" font-size="0.75em">(2)</tspan><tspan dy="5">, and B7 adds them.</tspan></text>
+  <text x="20" y="282" fill="#495057">Every other value is used once. No value is shared with another: each of the 12.6M values of {4, 1024, 3072} has a graph of its own.</text>
+</svg>
