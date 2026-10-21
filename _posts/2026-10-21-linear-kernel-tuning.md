@@ -2,9 +2,9 @@
 title: "Tuning a matrix multiply on a T4: eighteen runs, what helped, what did not, and the last 10% to cuBLAS"
 date: 2026-10-21
 modified: 2026-10-21
-version: 2
+version: 3
 permalink: /posts/linear-kernel-tuning/
-excerpt: "The linear layer kernel of my GPT-2 trainer started the day at 1.47 times PyTorch's time for one training step's matrix products, and ended it at 1.06. This note goes through every run in order: the idea behind it, the change, what the timing test and the profiler said, and what I kept. Five changes made it faster, five made no difference, two made it slower. The last run compares the kernel with cuBLAS's own at the level of machine code, and edits that machine code by hand to see where the remaining 10% comes from. The conclusion: PyTorch's matrix products are NVIDIA's cuBLAS, tuned for years, and the same layer written as four cuBLAS calls takes 0.97 times PyTorch's time, so that is what the trainer will use."
+excerpt: "The linear layer kernel of my GPT-2 trainer started the day at 1.47 times PyTorch's time for one training step's matrix products, and ended it at 1.06. This note goes through every run in order: the idea behind it, the change, what the timing test and the profiler said, and what I kept. Five changes made it faster, five made no difference, two made it slower. The last run compares the kernel with cuBLAS's own at the level of machine code, and edits that machine code by hand to see where the remaining 10% comes from. Eight figures draw the final kernel step by step, from the whole product down to one thread's multiply-adds. The conclusion: PyTorch's matrix products are NVIDIA's cuBLAS, tuned for years, and the same layer written as four cuBLAS calls takes 0.97 times PyTorch's time, so that is what the trainer will use."
 tags:
   - cuda
   - matmul
@@ -42,6 +42,10 @@ Zhang et al. [7] and Yan et al. [8]; the assembler is CuAssembler [9].
 | backward | one kernel: its first blocks make squares of `dW`, the rest squares of `dx`; the blocks of the first column of `dW` also sum `db` |
 
 *Table 1. The kernel at the start of the day: Boehm's kernel 5 [10], as in [2].*
+
+Section 5 draws the kernel as it ended the day, level by level, from the whole product down to one
+thread's multiply-adds. If words below such as *piece*, *step* or *turned copy* are new, it may help to
+read it first.
 
 ### 1.2 How it was measured
 
@@ -404,14 +408,242 @@ and gives the same results to the last bit.*
 | 14 | no edge checks for full squares | forward 2.3% | no, for simplicity |
 | 15 | cuBLAS's block shape | 6–14% slower | no |
 | 16–18 | hand-edited machine code | 3–4% slower | no |
-| 19 | the same layer made by cuBLAS calls (section 5) | a step 0.97 times PyTorch's | yes, for the trainer |
+| 19 | the same layer made by cuBLAS calls (section 6) | a step 0.97 times PyTorch's | yes, for the trainer |
 
 *Table 20. Every run of the day. Run 13 is the next-values-from-shared-memory idea of Table 13, measured
 by reading the profile instead of running it.*
 
-## 5. Conclusion: for matrix products, use cuBLAS
+## 5. How the final kernel computes, step by step
 
-### 5.1 Why ours does not reach PyTorch
+This section follows the committed kernel, `2529933` [1], through one layer: the qkv forward, with
+x {4096, 768}, W {2304, 768} and y = x · Wᵀ + b {4096, 2304}. Each value of y is a sum of 768 products:
+
+$$
+y_{t,j} = \sum_{i=0}^{767} x_{t,i}\, W_{j,i} + b_j
+$$
+
+The work is cut into levels, each inside the one before. The figures below go down them one at a time,
+and section 5.9 shows that the backward uses the same machinery.
+
+| level | how many | makes | where its values live |
+|---|---|---|---|
+| the whole product | 576 blocks | all of y, 9.4 million values | GPU memory |
+| a block | 256 threads | a square of 128 × 128 values of y | two sets of two pieces in shared memory, 16.5 KB |
+| a step | 96 per block | adds 8 values of i to every sum | each thread's next float4 of x and of W, in registers |
+| a thread | 8 values of i per step | 8 × 8 = 64 values of y | its 64 sums, in registers from first step to last |
+| one value of i | 8 per step | one 8 × 8 outer product | 16 values read from shared memory |
+
+*Table 21. The levels of the forward, for the qkv.*
+
+### 5.1 The product in squares
+
+![The qkv forward cut into squares of 128 × 128](/images/linear-kernel-tuning/fig2-squares.svg)
+
+*Figure 2. y is cut into 32 × 18 squares of 128 × 128 values, one per block. To make its square, a block
+needs only a band of 128 rows of x and a band of 128 rows of W.*
+
+A block's square needs (128 + 128) × 768 = 196,608 values of x and W, and does 128 × 128 × 768 =
+12.6 million multiply-adds with them: **64 multiply-adds per value read**. One thread per value of y,
+reading its row of x and its row of W, would do 1 multiply-add per 2 values read. Reusing each value
+read 64 times is the whole idea of the kernel [2]; everything below is how it gets the values to the
+threads fast enough.
+
+### 5.2 Which square each block makes
+
+![The first 80 blocks, numbered across first or in groups of 8 rows](/images/linear-kernel-tuning/fig3-block-order.svg)
+
+*Figure 3. The GPU starts blocks in the order of their number, about 80 at a time on a T4. Numbered in
+groups of 8 rows of squares, the blocks running together share fewer bands, so more of their reads come
+from the 4 MB L2 cache instead of GPU memory.*
+
+The kernel is launched as one line of 576 blocks, and each block works out its square from its number,
+`blockIdx.x`:
+
+```c
+size_t blocks_per_group = 8 * total_block_columns;                 // 8 rows of squares: 8 × 18 = 144 blocks
+size_t group = blockIdx.x / blocks_per_group;                      // which group of 8 rows
+size_t block_number_in_group = blockIdx.x % blocks_per_group;
+size_t block_row = group * 8 + block_number_in_group % 8;          // down the group first
+size_t block_column = block_number_in_group / 8;                   // then across
+```
+
+| block | group | number in group | square: row, column | rows t | output columns j |
+|---|---|---|---|---|---|
+| 0 | 0 | 0 | 0, 0 | 0–127 | 0–127 |
+| 7 | 0 | 7 | 7, 0 | 896–1023 | 0–127 |
+| 8 | 0 | 8 | 0, 1 | 0–127 | 128–255 |
+| 75 | 0 | 75 | 3, 9 | 384–511 | 1152–1279 |
+| 150 | 1 | 6 | 14, 0 | 1792–1919 | 0–127 |
+
+*Table 22. Block numbers and their squares, for the qkv. In the last group, if fewer than 8 rows are
+left, the same arithmetic runs with that number instead of 8.*
+
+### 5.3 One step: copying 8 values of i into shared memory
+
+The sum over 768 values of i is done in **96 steps of 8**. At each step, the block's 256 threads copy
+this step's 8 columns of x, for the block's 128 rows, and the same 8 columns of W, for its 128 output
+columns, into shared memory: 2 × 1,024 values, one float4 of each per thread.
+
+![The turned copy of one step](/images/linear-kernel-tuning/fig4-turned-copy.svg)
+
+*Figure 4. Each thread reads 4 neighbouring values of i in one row of x, and writes them down one column
+of the piece: the piece holds x turned round, with t along its rows.*
+
+```c
+// thread n reads row t = n / 2, values i = 4 (n % 2) .. +3 of this step: one float4
+float4 values = *(const float4*)(input + (block_first_row + t) * in_features + step_first_i + i);
+// and writes them down column t of the piece, one at a time
+block_input_piece[i + 0][t] = values.x;
+block_input_piece[i + 1][t] = values.y;
+block_input_piece[i + 2][t] = values.z;
+block_input_piece[i + 3][t] = values.w;
+```
+
+Why turn it round: at one i, a thread needs x for its 8 rows t. In x those 8 values are 768 floats apart;
+in the piece they sit side by side, so two float4 reads fetch all 8. The copy is done once a step, the
+reads 8 times a step, so the turning pays for itself [2].
+
+### 5.4 Where each thread's 64 values sit
+
+![The 256 threads in the block's square](/images/linear-kernel-tuning/fig5-threads.svg)
+
+*Figure 5. The 256 threads stand in 16 rows of 16. Each makes 8 rows × 8 columns of the square, its
+columns in two halves of 4 that are 64 apart.*
+
+```c
+int thread_first_row    = (threadIdx.x / 16) * 8;    // 0, 8, .. 120
+int thread_first_column = (threadIdx.x % 16) * 4;    // 0, 4, .. 60; the second half at + 64
+float sums[8][8] = {};                               // its 64 values of y, in registers
+```
+
+| thread | rows t of the square | columns j of the square |
+|---|---|---|
+| 0 | 0–7 | 0–3 and 64–67 |
+| 1 | 0–7 | 4–7 and 68–71 |
+| 15 | 0–7 | 60–63 and 124–127 |
+| 16 | 8–15 | 0–3 and 64–67 |
+| 17 | 8–15 | 4–7 and 68–71 |
+| 255 | 120–127 | 60–63 and 124–127 |
+
+*Table 23. Some threads and their 64 values. Add the block's first row and column (Table 22) for the
+place in y.*
+
+### 5.5 One value of i: an outer product
+
+![Thread 17 at one value of i](/images/linear-kernel-tuning/fig6-outer-product.svg)
+
+*Figure 6. At one i, a thread reads its 8 values of x and its 8 values of W, 4 float4 in all, and adds
+every one times every one into its 64 sums.*
+
+This is the loop that does all the arithmetic of the kernel. For each of the step's 8 values of i:
+
+```c
+float4 input_first_half   = *(const float4*)&block_input_piece[i][thread_first_row];          // t 0..3
+float4 input_second_half  = *(const float4*)&block_input_piece[i][thread_first_row + 4];      // t 4..7
+float4 weight_first_half  = *(const float4*)&block_weight_piece[i][thread_first_column];      // j 0..3
+float4 weight_second_half = *(const float4*)&block_weight_piece[i][thread_first_column + 64]; // j 64..67
+// input_values[8], weight_values[8]: the 16 floats above
+for (int t = 0; t < 8; t++)
+    for (int j = 0; j < 8; j++)
+        sums[t][j] += input_values[t] * weight_values[j];      // 64 multiply-adds
+```
+
+Both loops are unrolled by the compiler, and every index is known when compiling, so `sums` stays in 64
+registers and the inner part becomes 64 FFMA instructions (fused multiply-add) in a row: the 512 FFMAs
+per step that section 3.3 reordered by hand.
+
+### 5.6 Why the columns come in two halves: the banks
+
+![Which shared memory banks a warp's reads hit](/images/linear-kernel-tuning/fig7-banks.svg)
+
+*Figure 7. Shared memory has 32 banks, each serving one 4-byte word per round. With 8 neighbouring
+columns per thread, the reads crowd into half the banks and take 4 rounds; with two halves 64 apart,
+they spread over all 32 and take 2.*
+
+The rows of x a thread reads have no such problem: the 16 threads of a half-warp share the same 8 rows,
+so they read the same addresses, which shared memory sends to all of them in one round.
+
+### 5.7 The steps in time: double buffering
+
+![A block's steps in time, with one set of pieces or two](/images/linear-kernel-tuning/fig8-double-buffer.svg)
+
+*Figure 8. With two sets of pieces, each thread asks for the next step's values right after the sync, and
+they arrive while it does this step's math.*
+
+The whole forward loop, without the edge checks:
+
+```c
+float4 input4  = load the step-0 float4 of x;          // into registers
+float4 weight4 = load the step-0 float4 of W;
+for (size_t step = 0; step < 96; step++) {
+    int set = step % 2;
+    store input4, turned, into block_input_pieces[set];    // Figure 4
+    store weight4, turned, into block_weight_pieces[set];
+    __syncthreads();                    // this set is complete, and no one still reads the other set
+    if (step + 1 < 96) {
+        input4  = load the next step's float4 of x;    // asked for now, used at the next store
+        weight4 = load the next step's float4 of W;
+    }
+    for (int i = 0; i < 8; i++)
+        one outer product from block_input_pieces[set][i] and block_weight_pieces[set][i];   // Figure 6
+}
+```
+
+One `__syncthreads()` per step is enough. Before it, every thread has written this step's set; after it,
+every thread has finished the last step's math, the only reader of the other set, which the next step
+writes.
+
+### 5.8 The end: the bias, and writing y
+
+After 96 steps, each of a thread's 64 sums holds its whole sum over 768 values of i. The thread adds the
+bias and writes its 64 values of y as 16 float4: for each of its 8 rows, its first half of 4 columns and
+its second half. A thread whose rows or columns fall past the edge of y, in a part-full square when a size
+is not a multiple of 128, writes nothing there.
+
+| one thread, over the whole qkv forward | count |
+|---|---|
+| float4 read from GPU memory | 96 steps × 2 = 192 (768 floats) |
+| float4 read from shared memory | 96 steps × 8 values of i × 4 = 3,072 |
+| multiply-adds | 96 × 8 × 64 = 49,152 = 64 values × 768 |
+| float4 written to y | 16 |
+| `__syncthreads()` | 96 |
+
+*Table 24. What one of the 147,456 threads (576 blocks × 256) does from start to end.*
+
+### 5.9 The backward: the same machinery
+
+The two products of the backward have the same shape, a left matrix times a right matrix, and are made by
+the same steps: copy 8 values of the summed index k into two pieces, add 8 outer products, repeat. Only
+the names and which pieces are turned change.
+
+![The forward and the backward's two products as left · right](/images/linear-kernel-tuning/fig9-backward.svg)
+
+*Figure 9. The three products. A piece is copied turned round when its matrix keeps k last, so that a
+thread's 8 values at one k sit side by side, as in Figure 4.*
+
+| product | rows r | columns c | summed k | left piece | right piece | blocks | steps |
+|---|---|---|---|---|---|---|---|
+| y = x · Wᵀ | t, 4096 | j, 2304 | i, 768 | x, turned | W, turned | 576 | 96 |
+| dW += dyᵀ · x | j, 2304 | i, 768 | t, 4096 | dy, as it is | x, as it is | 108 | 512 |
+| dx = dy · W | t, 4096 | i, 768 | j, 2304 | dy, turned | W, as it is | 192 | 288 |
+
+*Table 25. The three products, for the qkv. The copy "as it is" is the simpler one: thread n reads 4
+neighbouring columns c at k = n / 32, and stores them as one float4.*
+
+Two more details of the backward:
+
+1. **Two kernels, not one.** `linear_weight_grad_kernel` makes dW and `linear_input_grad_kernel` makes
+   dx, launched one after the other. Each then gets the registers its own product needs, at most 128, and
+   2 blocks fit an SM (runs 6 and 9).
+2. **db rides along with dW.** db[j] is the sum over all rows t of dy[t][j]: the dW product with a right
+   matrix of all 1s. The blocks of dW's first column of squares already read every dy[t][j] into their
+   left pieces, so each of their threads also adds its 8 left values at every k into `bias_sums[8]`, and
+   the 16 threads of the first column of threads add them onto `bias_grad` at the end. No extra reads, and
+   the same order of adding every run (run 7).
+
+## 6. Conclusion: for matrix products, use cuBLAS
+
+### 6.1 Why ours does not reach PyTorch
 
 PyTorch has no matrix multiply of its own. `torch::linear` and its backward call cuBLAS, NVIDIA's library,
 which is also what `ncu` showed running inside the test (Table 15). So every "PyTorch" column in this note
@@ -425,7 +657,7 @@ code by hand [6]. Our kernel is one design, tuned in one day. Going from 1.47 to
 eighteen runs; the papers that closed the last gap [5–8] first measured the hardware's rules with test
 kernels of their own, then wrote machine code by hand. That is not a short-term job.
 
-### 5.2 Run 19: the same layer made by cuBLAS
+### 6.2 Run 19: the same layer made by cuBLAS
 
 To see what using the library gives, I wrote `llmc/kernels/linear_cublas.cuh` [1]: the same
 `linear_forward` and `linear_backward`, called the same way, with each step one cuBLAS call [11]:
@@ -437,7 +669,7 @@ To see what using the library gives, I wrote `llmc/kernels/linear_cublas.cuh` [1
 | `dW += dyᵀ x` | `cublasSgemm`, beta = 1 | the product, added onto `dW` |
 | `db += dyᵀ 1` | `cublasSgemv` with a vector of 1s, beta = 1 | each column of `dy` added up, onto `db` |
 
-*Table 21. Four library calls in place of three kernels, 664 lines with their comments. cuBLAS reads matrices by columns and
+*Table 26. Four library calls in place of three kernels, 664 lines with their comments. cuBLAS reads matrices by columns and
 we store them by rows, so each call asks for the product the other way round: (A · B)ᵀ = Bᵀ · Aᵀ.*
 
 Its test, `tests/test_linear_cublas.cu`, is the kernel's test with the same cases. Every check passed: the
@@ -454,11 +686,11 @@ size, and the alignment settings are 4 bytes; passed as 8, it stops with "an uns
 | head | 1.182 | **0.944** | 0.897 | 0.973 |
 | one training step | 1.06 (753 ms against 709) | | **0.97** (731 ms against 751) | |
 
-*Table 22. Our time ÷ PyTorch's, from two runs on a Colab T4; each ratio from one run, so the two compare,
+*Table 27. Our time ÷ PyTorch's, from two runs on a Colab T4; each ratio from one run, so the two compare,
 the raw times do not (PyTorch's own step took 709 ms in one run and 751 in the other: the clock of section
 1.2).*
 
-Two things in Table 22 need a word:
+Two things in Table 27 need a word:
 
 1. **The cuBLAS version is a little under 1.** It runs the same kernels as PyTorch, but adds `dW` and `db`
    straight onto the gradients (beta = 1). PyTorch's autograd makes each gradient in a new tensor and then
@@ -469,7 +701,7 @@ Two things in Table 22 need a word:
    its extra passes included; it says that on this one size the hand kernels and the extra passes together
    come out ahead, not that they beat cuBLAS's products.
 
-### 5.3 The decision
+### 6.3 The decision
 
 For a model that has to train fast, the matrix products should come from cuBLAS:
 
@@ -481,14 +713,14 @@ For a model that has to train fast, the matrix products should come from cuBLAS:
 | other GPUs | tuned for a T4 | cuBLAS picks for each GPU |
 | what it teaches | everything in this note | how to call a library |
 
-*Table 23. What each version gives.*
+*Table 28. What each version gives.*
 
 The trainer will use `linear_cublas.cuh`. `linear.cuh` stays, as the version this note and [2] explain, and
 as a check: two different codes agreeing with PyTorch to 1e-5 is a strong test of both. The day was not
 wasted on it either: padding, bank conflicts, registers per block, double buffering and L2-friendly block
 order are the same tools for the kernels cuBLAS does not have: LayerNorm, attention, GELU.
 
-## 6. What to remember
+## 7. What to remember
 
 1. **Measure the same way each time.** A T4 changes its clock under load and heat. Compare our time ÷
    PyTorch's from the same run, and for small changes use `ncu`, which locks the clock.
@@ -508,7 +740,7 @@ order are the same tools for the kernels cuBLAS does not have: LayerNorm, attent
    means matching NVIDIA's years of tuning. To build a model that trains fast, call cuBLAS for the matrix
    products, as PyTorch does, and spend the hand-written CUDA on the kernels no library has.
 
-## 7. What is left
+## 8. What is left
 
 1. **Use `linear_cublas.cuh` in the trainer**, for all 49 linear layers of GPT-2 small.
 2. **Half precision on the tensor cores.** The T4 does about 65 TFLOPS in FP16 on its tensor cores,
@@ -525,7 +757,7 @@ If I come back to the hand kernel, as a study:
 
 1. D. B. Song. *gpt2-small*, branch `c-cuda-trainer`: GPT-2 small pre-training in C and CUDA.
    `llmc/kernels/linear.cuh` and `tests/test_linear.cu`, commits `8ecbae8`, `22c98fb`, `2529933`;
-   `llmc/kernels/linear_cublas.cuh` and `tests/test_linear_cublas.cu`, commit `8073418`, for section 5.
+   `llmc/kernels/linear_cublas.cuh` and `tests/test_linear_cublas.cu`, commit `8073418`, for section 6.
    [github.com/ducbachsong/gpt2-small](https://github.com/ducbachsong/gpt2-small/tree/c-cuda-trainer)
 2. D. B. Song. *Two ways to multiply matrices: inner products, outer products, and why a GPU kernel uses
    the second.* 2026. [/posts/matmul-outer-product/](/posts/matmul-outer-product/)

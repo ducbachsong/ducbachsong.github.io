@@ -1,0 +1,215 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 480" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <rect width="860" height="480" fill="#ffffff"/>
+  <text x="20.0" y="28.0" font-size="15" text-anchor="start" fill="#212529" font-weight="600">Threads 0–15 read their first-half float4 of weight_piece[i]: which banks they hit</text>
+  <text x="20.0" y="48.0" font-size="13" text-anchor="start" fill="#495057">Shared memory has 32 banks, 4 bytes each; column c of a piece row is in bank c mod 32. Each round reads one word per bank.</text>
+  <text x="20.0" y="96.0" font-size="13" text-anchor="start" fill="#212529" font-weight="600">(a) 8 neighbouring columns per thread (before run 4): thread n starts at column 8n</text>
+  <rect x="120.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="131.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">0</text>
+  <rect x="142.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="153.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">1</text>
+  <rect x="164.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="175.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">2</text>
+  <rect x="186.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="197.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">3</text>
+  <rect x="208.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="219.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">4</text>
+  <rect x="230.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="241.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">5</text>
+  <rect x="252.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="263.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">6</text>
+  <rect x="274.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="285.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">7</text>
+  <rect x="296.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="307.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">8</text>
+  <rect x="318.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="329.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">9</text>
+  <rect x="340.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="351.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">10</text>
+  <rect x="362.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="373.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">11</text>
+  <rect x="384.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="395.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">12</text>
+  <rect x="406.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="417.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">13</text>
+  <rect x="428.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="439.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">14</text>
+  <rect x="450.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="461.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">15</text>
+  <rect x="472.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="483.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">16</text>
+  <rect x="494.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="505.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">17</text>
+  <rect x="516.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="527.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">18</text>
+  <rect x="538.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="549.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">19</text>
+  <rect x="560.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="571.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">20</text>
+  <rect x="582.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="593.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">21</text>
+  <rect x="604.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="615.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">22</text>
+  <rect x="626.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="637.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">23</text>
+  <rect x="648.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="659.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">24</text>
+  <rect x="670.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="681.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">25</text>
+  <rect x="692.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="703.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">26</text>
+  <rect x="714.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="725.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">27</text>
+  <rect x="736.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="747.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">28</text>
+  <rect x="758.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="769.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">29</text>
+  <rect x="780.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="791.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">30</text>
+  <rect x="802.0" y="110.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="813.0" y="123.0" font-size="9" text-anchor="middle" fill="#495057">31</text>
+  <text x="110.0" y="123.0" font-size="11" text-anchor="end" fill="#495057">bank</text>
+  <text x="110.0" y="147.0" font-size="11" text-anchor="end" fill="#495057">round 1</text>
+  <text x="110.0" y="169.0" font-size="11" text-anchor="end" fill="#495057">round 2</text>
+  <text x="110.0" y="191.0" font-size="11" text-anchor="end" fill="#495057">round 3</text>
+  <text x="110.0" y="213.0" font-size="11" text-anchor="end" fill="#495057">round 4</text>
+  <rect x="121.0" y="133.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="164.0" y="146.5" font-size="9" text-anchor="middle" fill="#212529">thread 0: 0–3</text>
+  <rect x="297.0" y="133.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="340.0" y="146.5" font-size="9" text-anchor="middle" fill="#212529">thread 1: 8–11</text>
+  <rect x="473.0" y="133.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="516.0" y="146.5" font-size="9" text-anchor="middle" fill="#212529">thread 2: 16–19</text>
+  <rect x="649.0" y="133.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="692.0" y="146.5" font-size="9" text-anchor="middle" fill="#212529">thread 3: 24–27</text>
+  <rect x="121.0" y="155.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="164.0" y="168.5" font-size="9" text-anchor="middle" fill="#212529">thread 4: 32–35</text>
+  <rect x="297.0" y="155.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="340.0" y="168.5" font-size="9" text-anchor="middle" fill="#212529">thread 5: 40–43</text>
+  <rect x="473.0" y="155.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="516.0" y="168.5" font-size="9" text-anchor="middle" fill="#212529">thread 6: 48–51</text>
+  <rect x="649.0" y="155.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="692.0" y="168.5" font-size="9" text-anchor="middle" fill="#212529">thread 7: 56–59</text>
+  <rect x="121.0" y="177.0" width="86.0" height="20.0" rx="3" fill="#b2f2bb" stroke="#495057" stroke-width="0.6"/>
+  <text x="164.0" y="190.5" font-size="9" text-anchor="middle" fill="#212529">thread 8: 64–67</text>
+  <rect x="297.0" y="177.0" width="86.0" height="20.0" rx="3" fill="#b2f2bb" stroke="#495057" stroke-width="0.6"/>
+  <text x="340.0" y="190.5" font-size="9" text-anchor="middle" fill="#212529">thread 9: 72–75</text>
+  <rect x="473.0" y="177.0" width="86.0" height="20.0" rx="3" fill="#b2f2bb" stroke="#495057" stroke-width="0.6"/>
+  <text x="516.0" y="190.5" font-size="9" text-anchor="middle" fill="#212529">thread 10: 80–83</text>
+  <rect x="649.0" y="177.0" width="86.0" height="20.0" rx="3" fill="#b2f2bb" stroke="#495057" stroke-width="0.6"/>
+  <text x="692.0" y="190.5" font-size="9" text-anchor="middle" fill="#212529">thread 11: 88–91</text>
+  <rect x="121.0" y="199.0" width="86.0" height="20.0" rx="3" fill="#ffd8a8" stroke="#495057" stroke-width="0.6"/>
+  <text x="164.0" y="212.5" font-size="9" text-anchor="middle" fill="#212529">thread 12: 96–99</text>
+  <rect x="297.0" y="199.0" width="86.0" height="20.0" rx="3" fill="#ffd8a8" stroke="#495057" stroke-width="0.6"/>
+  <text x="340.0" y="212.5" font-size="9" text-anchor="middle" fill="#212529">thread 13: 104–107</text>
+  <rect x="473.0" y="199.0" width="86.0" height="20.0" rx="3" fill="#ffd8a8" stroke="#495057" stroke-width="0.6"/>
+  <text x="516.0" y="212.5" font-size="9" text-anchor="middle" fill="#212529">thread 14: 112–115</text>
+  <rect x="649.0" y="199.0" width="86.0" height="20.0" rx="3" fill="#ffd8a8" stroke="#495057" stroke-width="0.6"/>
+  <text x="692.0" y="212.5" font-size="9" text-anchor="middle" fill="#212529">thread 15: 120–123</text>
+  <text x="830.0" y="180.0" font-size="11" text-anchor="start" fill="#212529"></text>
+  <text x="120.0" y="238.0" font-size="12" text-anchor="start" fill="#e03131" font-weight="600">16 banks busy, 16 idle: 4 rounds</text>
+  <text x="20.0" y="270.0" font-size="13" text-anchor="start" fill="#212529" font-weight="600">(b) two halves, 64 apart (now): thread n starts at column 4n</text>
+  <rect x="120.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="131.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">0</text>
+  <rect x="142.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="153.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">1</text>
+  <rect x="164.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="175.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">2</text>
+  <rect x="186.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="197.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">3</text>
+  <rect x="208.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="219.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">4</text>
+  <rect x="230.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="241.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">5</text>
+  <rect x="252.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="263.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">6</text>
+  <rect x="274.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="285.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">7</text>
+  <rect x="296.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="307.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">8</text>
+  <rect x="318.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="329.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">9</text>
+  <rect x="340.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="351.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">10</text>
+  <rect x="362.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="373.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">11</text>
+  <rect x="384.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="395.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">12</text>
+  <rect x="406.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="417.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">13</text>
+  <rect x="428.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="439.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">14</text>
+  <rect x="450.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="461.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">15</text>
+  <rect x="472.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="483.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">16</text>
+  <rect x="494.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="505.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">17</text>
+  <rect x="516.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="527.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">18</text>
+  <rect x="538.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="549.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">19</text>
+  <rect x="560.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="571.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">20</text>
+  <rect x="582.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="593.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">21</text>
+  <rect x="604.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="615.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">22</text>
+  <rect x="626.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="637.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">23</text>
+  <rect x="648.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="659.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">24</text>
+  <rect x="670.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="681.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">25</text>
+  <rect x="692.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="703.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">26</text>
+  <rect x="714.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="725.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">27</text>
+  <rect x="736.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="747.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">28</text>
+  <rect x="758.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="769.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">29</text>
+  <rect x="780.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="791.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">30</text>
+  <rect x="802.0" y="284.0" width="22.0" height="18.0" rx="0" fill="#e9ecef" stroke="#ced4da" stroke-width="0.6"/>
+  <text x="813.0" y="297.0" font-size="9" text-anchor="middle" fill="#495057">31</text>
+  <text x="110.0" y="297.0" font-size="11" text-anchor="end" fill="#495057">bank</text>
+  <text x="110.0" y="321.0" font-size="11" text-anchor="end" fill="#495057">round 1</text>
+  <text x="110.0" y="343.0" font-size="11" text-anchor="end" fill="#495057">round 2</text>
+  <rect x="121.0" y="307.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="164.0" y="320.5" font-size="9" text-anchor="middle" fill="#212529">thread 0: 0–3</text>
+  <rect x="209.0" y="307.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="252.0" y="320.5" font-size="9" text-anchor="middle" fill="#212529">thread 1: 4–7</text>
+  <rect x="297.0" y="307.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="340.0" y="320.5" font-size="9" text-anchor="middle" fill="#212529">thread 2: 8–11</text>
+  <rect x="385.0" y="307.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="428.0" y="320.5" font-size="9" text-anchor="middle" fill="#212529">thread 3: 12–15</text>
+  <rect x="473.0" y="307.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="516.0" y="320.5" font-size="9" text-anchor="middle" fill="#212529">thread 4: 16–19</text>
+  <rect x="561.0" y="307.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="604.0" y="320.5" font-size="9" text-anchor="middle" fill="#212529">thread 5: 20–23</text>
+  <rect x="649.0" y="307.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="692.0" y="320.5" font-size="9" text-anchor="middle" fill="#212529">thread 6: 24–27</text>
+  <rect x="737.0" y="307.0" width="86.0" height="20.0" rx="3" fill="#d0bfff" stroke="#495057" stroke-width="0.6"/>
+  <text x="780.0" y="320.5" font-size="9" text-anchor="middle" fill="#212529">thread 7: 28–31</text>
+  <rect x="121.0" y="329.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="164.0" y="342.5" font-size="9" text-anchor="middle" fill="#212529">thread 8: 32–35</text>
+  <rect x="209.0" y="329.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="252.0" y="342.5" font-size="9" text-anchor="middle" fill="#212529">thread 9: 36–39</text>
+  <rect x="297.0" y="329.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="340.0" y="342.5" font-size="9" text-anchor="middle" fill="#212529">thread 10: 40–43</text>
+  <rect x="385.0" y="329.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="428.0" y="342.5" font-size="9" text-anchor="middle" fill="#212529">thread 11: 44–47</text>
+  <rect x="473.0" y="329.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="516.0" y="342.5" font-size="9" text-anchor="middle" fill="#212529">thread 12: 48–51</text>
+  <rect x="561.0" y="329.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="604.0" y="342.5" font-size="9" text-anchor="middle" fill="#212529">thread 13: 52–55</text>
+  <rect x="649.0" y="329.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="692.0" y="342.5" font-size="9" text-anchor="middle" fill="#212529">thread 14: 56–59</text>
+  <rect x="737.0" y="329.0" width="86.0" height="20.0" rx="3" fill="#a5d8ff" stroke="#495057" stroke-width="0.6"/>
+  <text x="780.0" y="342.5" font-size="9" text-anchor="middle" fill="#212529">thread 15: 60–63</text>
+  <text x="830.0" y="332.0" font-size="11" text-anchor="start" fill="#212529"></text>
+  <text x="120.0" y="368.0" font-size="12" text-anchor="start" fill="#2f9e44" font-weight="600">all 32 banks busy: 2 rounds, the fewest 64 floats can take</text>
+  <text x="20.0" y="396.0" font-size="12.5" text-anchor="start" fill="#495057">Threads 16–31, the warp's other half, make the next 8 rows and the same columns, so they read the same addresses:</text>
+  <text x="20.0" y="416.0" font-size="12.5" text-anchor="start" fill="#495057">shared memory sends one read to both halves at once. 16 float4 are 64 floats; one round reads 32 words, so 2 rounds is</text>
+  <text x="20.0" y="436.0" font-size="12.5" text-anchor="start" fill="#495057">the least. In (a), columns 0, 32, 64 and 96 all fall in banks 0–3, and banks 4–7 are never used: 4 rounds. ncu counted</text>
+  <text x="20.0" y="456.0" font-size="12.5" text-anchor="start" fill="#495057">40% of all shared memory reads as such repeats. (b) is run 4: one change of index math, 23% off every forward.</text>
+</svg>

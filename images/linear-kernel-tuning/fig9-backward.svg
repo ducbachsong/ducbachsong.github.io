@@ -1,0 +1,82 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 520" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs><marker id="arrow1971c2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#1971c2"/></marker><marker id="arrowe8590c" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M 0 0 L 10 5 L 0 10 z" fill="#e8590c"/></marker></defs>
+  <rect width="860" height="520" fill="#ffffff"/>
+  <text x="20.0" y="28.0" font-size="15" text-anchor="start" fill="#212529" font-weight="600">The same machinery makes all three products: left (r × k) · right (k × c) = product (r × c)</text>
+  <text x="20.0" y="48.0" font-size="13" text-anchor="start" fill="#495057">Light: the block's bands. Dark: one step's 8 values of k. A piece whose matrix keeps k last is copied turned round.</text>
+  <text x="20.0" y="110.0" font-size="13" text-anchor="start" fill="#212529" font-weight="600">forward</text>
+  <text x="20.0" y="130.0" font-size="13" text-anchor="start" fill="#495057">y = x · Wᵀ</text>
+  <rect x="150.0" y="100.0" width="130.0" height="80.0" rx="0" fill="#e7f5ff" stroke="#1971c2" stroke-width="1"/>
+  <rect x="150.0" y="122.0" width="130.0" height="20.0" rx="0" fill="#d0ebff" stroke="none" stroke-width="1"/>
+  <rect x="202.0" y="122.0" width="8.0" height="20.0" rx="0" fill="#74c0fc" stroke="#1971c2" stroke-width="1"/>
+  <line x1="156.0" y1="170.0" x2="274.0" y2="170.0" stroke="#1971c2" stroke-width="1.2" marker-end="url(#arrow1971c2)"/>
+  <text x="215.0" y="164.0" font-size="11" text-anchor="middle" fill="#1971c2">k</text>
+  <text x="215.0" y="197.0" font-size="11.5" text-anchor="middle" fill="#212529">x  {4096, 768}</text>
+  <text x="215.0" y="213.0" font-size="11" text-anchor="middle" fill="#6741d9" font-weight="600">copied turned</text>
+  <rect x="330.0" y="100.0" width="130.0" height="80.0" rx="0" fill="#fff4e6" stroke="#e8590c" stroke-width="1"/>
+  <rect x="404.0" y="100.0" width="26.0" height="80.0" rx="0" fill="#ffe8cc" stroke="none" stroke-width="1"/>
+  <rect x="404.0" y="134.0" width="26.0" height="8.0" rx="0" fill="#ffa94d" stroke="#e8590c" stroke-width="1"/>
+  <line x1="342.0" y1="106.0" x2="342.0" y2="174.0" stroke="#e8590c" stroke-width="1.2" marker-end="url(#arrowe8590c)"/>
+  <text x="352.0" y="144.0" font-size="11" text-anchor="start" fill="#e8590c">k</text>
+  <text x="395.0" y="197.0" font-size="11.5" text-anchor="middle" fill="#212529">Wᵀ, from W {2304, 768}</text>
+  <text x="395.0" y="213.0" font-size="11" text-anchor="middle" fill="#6741d9" font-weight="600">copied turned</text>
+  <rect x="510.0" y="100.0" width="130.0" height="80.0" rx="0" fill="#ebfbee" stroke="#2f9e44" stroke-width="1"/>
+  <rect x="584.0" y="122.0" width="26.0" height="20.0" rx="0" fill="#69db7c" stroke="#2f9e44" stroke-width="1.2"/>
+  <text x="575.0" y="197.0" font-size="11.5" text-anchor="middle" fill="#212529">y  {4096, 2304}</text>
+  <text x="300.0" y="146.0" font-size="22" text-anchor="middle" fill="#212529">·</text>
+  <text x="480.0" y="146.0" font-size="18" text-anchor="middle" fill="#212529">=</text>
+  <text x="660.0" y="112.0" font-size="12" text-anchor="start" fill="#495057">k = i: 768, 96 steps</text>
+  <text x="660.0" y="130.0" font-size="12" text-anchor="start" fill="#495057">x and W both keep i last:</text>
+  <text x="660.0" y="148.0" font-size="12" text-anchor="start" fill="#495057">both pieces turned</text>
+  <text x="660.0" y="166.0" font-size="12" text-anchor="start" fill="#495057">32 × 18 = 576 blocks</text>
+  <text x="20.0" y="250.0" font-size="13" text-anchor="start" fill="#212529" font-weight="600">weight grad</text>
+  <text x="20.0" y="270.0" font-size="13" text-anchor="start" fill="#495057">dW = dyᵀ · x</text>
+  <rect x="150.0" y="240.0" width="130.0" height="80.0" rx="0" fill="#e7f5ff" stroke="#1971c2" stroke-width="1"/>
+  <rect x="150.0" y="262.0" width="130.0" height="20.0" rx="0" fill="#d0ebff" stroke="none" stroke-width="1"/>
+  <rect x="202.0" y="262.0" width="8.0" height="20.0" rx="0" fill="#74c0fc" stroke="#1971c2" stroke-width="1"/>
+  <line x1="156.0" y1="310.0" x2="274.0" y2="310.0" stroke="#1971c2" stroke-width="1.2" marker-end="url(#arrow1971c2)"/>
+  <text x="215.0" y="304.0" font-size="11" text-anchor="middle" fill="#1971c2">k</text>
+  <text x="215.0" y="337.0" font-size="11.5" text-anchor="middle" fill="#212529">dyᵀ, from dy {4096, 2304}</text>
+  <text x="215.0" y="353.0" font-size="11" text-anchor="middle" fill="#868e96">copied as it is</text>
+  <rect x="330.0" y="240.0" width="130.0" height="80.0" rx="0" fill="#fff4e6" stroke="#e8590c" stroke-width="1"/>
+  <rect x="404.0" y="240.0" width="26.0" height="80.0" rx="0" fill="#ffe8cc" stroke="none" stroke-width="1"/>
+  <rect x="404.0" y="274.0" width="26.0" height="8.0" rx="0" fill="#ffa94d" stroke="#e8590c" stroke-width="1"/>
+  <line x1="342.0" y1="246.0" x2="342.0" y2="314.0" stroke="#e8590c" stroke-width="1.2" marker-end="url(#arrowe8590c)"/>
+  <text x="352.0" y="284.0" font-size="11" text-anchor="start" fill="#e8590c">k</text>
+  <text x="395.0" y="337.0" font-size="11.5" text-anchor="middle" fill="#212529">x  {4096, 768}</text>
+  <text x="395.0" y="353.0" font-size="11" text-anchor="middle" fill="#868e96">copied as it is</text>
+  <rect x="510.0" y="240.0" width="130.0" height="80.0" rx="0" fill="#ebfbee" stroke="#2f9e44" stroke-width="1"/>
+  <rect x="584.0" y="262.0" width="26.0" height="20.0" rx="0" fill="#69db7c" stroke="#2f9e44" stroke-width="1.2"/>
+  <text x="575.0" y="337.0" font-size="11.5" text-anchor="middle" fill="#212529">dW  {2304, 768}</text>
+  <text x="300.0" y="286.0" font-size="22" text-anchor="middle" fill="#212529">·</text>
+  <text x="480.0" y="286.0" font-size="18" text-anchor="middle" fill="#212529">=</text>
+  <text x="660.0" y="252.0" font-size="12" text-anchor="start" fill="#495057">k = t: 4096, 512 steps</text>
+  <text x="660.0" y="270.0" font-size="12" text-anchor="start" fill="#495057">dy and x keep t first:</text>
+  <text x="660.0" y="288.0" font-size="12" text-anchor="start" fill="#495057">both copied as they are</text>
+  <text x="660.0" y="306.0" font-size="12" text-anchor="start" fill="#495057">18 × 6 = 108 blocks,</text>
+  <text x="660.0" y="324.0" font-size="12" text-anchor="start" fill="#495057">and db from the left piece</text>
+  <text x="20.0" y="390.0" font-size="13" text-anchor="start" fill="#212529" font-weight="600">input grad</text>
+  <text x="20.0" y="410.0" font-size="13" text-anchor="start" fill="#495057">dx = dy · W</text>
+  <rect x="150.0" y="380.0" width="130.0" height="80.0" rx="0" fill="#e7f5ff" stroke="#1971c2" stroke-width="1"/>
+  <rect x="150.0" y="402.0" width="130.0" height="20.0" rx="0" fill="#d0ebff" stroke="none" stroke-width="1"/>
+  <rect x="202.0" y="402.0" width="8.0" height="20.0" rx="0" fill="#74c0fc" stroke="#1971c2" stroke-width="1"/>
+  <line x1="156.0" y1="450.0" x2="274.0" y2="450.0" stroke="#1971c2" stroke-width="1.2" marker-end="url(#arrow1971c2)"/>
+  <text x="215.0" y="444.0" font-size="11" text-anchor="middle" fill="#1971c2">k</text>
+  <text x="215.0" y="477.0" font-size="11.5" text-anchor="middle" fill="#212529">dy  {4096, 2304}</text>
+  <text x="215.0" y="493.0" font-size="11" text-anchor="middle" fill="#6741d9" font-weight="600">copied turned</text>
+  <rect x="330.0" y="380.0" width="130.0" height="80.0" rx="0" fill="#fff4e6" stroke="#e8590c" stroke-width="1"/>
+  <rect x="404.0" y="380.0" width="26.0" height="80.0" rx="0" fill="#ffe8cc" stroke="none" stroke-width="1"/>
+  <rect x="404.0" y="414.0" width="26.0" height="8.0" rx="0" fill="#ffa94d" stroke="#e8590c" stroke-width="1"/>
+  <line x1="342.0" y1="386.0" x2="342.0" y2="454.0" stroke="#e8590c" stroke-width="1.2" marker-end="url(#arrowe8590c)"/>
+  <text x="352.0" y="424.0" font-size="11" text-anchor="start" fill="#e8590c">k</text>
+  <text x="395.0" y="477.0" font-size="11.5" text-anchor="middle" fill="#212529">W  {2304, 768}</text>
+  <text x="395.0" y="493.0" font-size="11" text-anchor="middle" fill="#868e96">copied as it is</text>
+  <rect x="510.0" y="380.0" width="130.0" height="80.0" rx="0" fill="#ebfbee" stroke="#2f9e44" stroke-width="1"/>
+  <rect x="584.0" y="402.0" width="26.0" height="20.0" rx="0" fill="#69db7c" stroke="#2f9e44" stroke-width="1.2"/>
+  <text x="575.0" y="477.0" font-size="11.5" text-anchor="middle" fill="#212529">dx  {4096, 768}</text>
+  <text x="300.0" y="426.0" font-size="22" text-anchor="middle" fill="#212529">·</text>
+  <text x="480.0" y="426.0" font-size="18" text-anchor="middle" fill="#212529">=</text>
+  <text x="660.0" y="392.0" font-size="12" text-anchor="start" fill="#495057">k = j: 2304, 288 steps</text>
+  <text x="660.0" y="410.0" font-size="12" text-anchor="start" fill="#495057">dy keeps j last: turned;</text>
+  <text x="660.0" y="428.0" font-size="12" text-anchor="start" fill="#495057">W keeps j first: as it is</text>
+  <text x="660.0" y="446.0" font-size="12" text-anchor="start" fill="#495057">32 × 6 = 192 blocks</text>
+</svg>
