@@ -1,0 +1,76 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 420" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+  </defs>
+  <rect width="860" height="420" fill="#ffffff"/>
+  <text x="20" y="26" text-anchor="start" font-size="15" fill="#212529" font-weight="600">One row, one read: how 1024 threads find row_max and row_sum together</text>
+  <text x="20" y="44" text-anchor="start" font-size="13" fill="#495057">classifier_forward_kernel, one block per row. Each thread keeps a running (max, sum); then the pairs are merged, 1024 → 32 → 1.</text>
+  <text x="20" y="72" text-anchor="start" font-size="12" fill="#212529" font-weight="600">the row: 12,576 float4s (50304 floats); thread t reads float4s t, t + 1024, t + 2048, …</text>
+  <rect x="20" y="82" width="44" height="26" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="42.0" y="99" text-anchor="middle" font-size="11" fill="#1971c2">t0</text>
+  <rect x="66" y="82" width="44" height="26" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="88.0" y="99" text-anchor="middle" font-size="11" fill="#495057">t1</text>
+  <rect x="112" y="82" width="44" height="26" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="134.0" y="99" text-anchor="middle" font-size="11" fill="#495057">t2</text>
+  <rect x="158" y="82" width="44" height="26" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="180.0" y="99" text-anchor="middle" font-size="11" fill="#495057">t3</text>
+  <text x="215.0" y="99" text-anchor="middle" font-size="11" fill="#495057">…</text>
+  <rect x="228" y="82" width="44" height="26" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="250.0" y="99" text-anchor="middle" font-size="11" fill="#495057">t1023</text>
+  <rect x="274" y="82" width="44" height="26" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="296.0" y="99" text-anchor="middle" font-size="11" fill="#1971c2">t0</text>
+  <rect x="320" y="82" width="44" height="26" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="342.0" y="99" text-anchor="middle" font-size="11" fill="#495057">t1</text>
+  <rect x="366" y="82" width="44" height="26" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="388.0" y="99" text-anchor="middle" font-size="11" fill="#495057">t2</text>
+  <rect x="412" y="82" width="44" height="26" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="434.0" y="99" text-anchor="middle" font-size="11" fill="#495057">t3</text>
+  <text x="469.0" y="99" text-anchor="middle" font-size="11" fill="#495057">…</text>
+  <rect x="482" y="82" width="44" height="26" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="504.0" y="99" text-anchor="middle" font-size="11" fill="#495057">t1023</text>
+  <text x="539.0" y="99" text-anchor="middle" font-size="11" fill="#495057">…</text>
+  <rect x="552" y="82" width="44" height="26" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="574.0" y="99" text-anchor="middle" font-size="11" fill="#1971c2">t0</text>
+  <text x="609.0" y="99" text-anchor="middle" font-size="11" fill="#495057">…</text>
+  <rect x="622" y="82" width="44" height="26" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="644.0" y="99" text-anchor="middle" font-size="11" fill="#495057">t276</text>
+  <rect x="668" y="82" width="44" height="26" fill="#ffffff" stroke="#adb5bd" stroke-dasharray="3 2"/>
+  <text x="690.0" y="99" text-anchor="middle" font-size="11" fill="#adb5bd">pad</text>
+  <text x="725.0" y="99" text-anchor="middle" font-size="11" fill="#495057">…</text>
+  <rect x="738" y="82" width="44" height="26" fill="#ffffff" stroke="#adb5bd" stroke-dasharray="3 2"/>
+  <text x="760.0" y="99" text-anchor="middle" font-size="11" fill="#adb5bd">pad</text>
+  <text x="20" y="126" text-anchor="start" font-size="11" fill="#868e96">float4s 0 .. 12,564 have words (the last one: 1 word + 3 padding columns)</text>
+  <text x="782" y="126" text-anchor="end" font-size="11" fill="#868e96">12,565 .. 12,575: padding only, not read</text>
+  <rect x="20" y="146" width="390" height="48" rx="6" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="34" y="166" text-anchor="start" font-size="13" fill="#212529" font-weight="600">1. each thread</text>
+  <text x="34" y="184" text-anchor="start" font-size="12" fill="#495057">update rule, 4 values at a time, over its 12 or 13 float4s</text>
+  <text x="420" y="175" text-anchor="start" font-size="12" fill="#212529">→ 1024 pairs (m, s)</text>
+  <rect x="20" y="216" width="390" height="48" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="34" y="236" text-anchor="start" font-size="13" fill="#212529" font-weight="600">2. each warp</text>
+  <text x="34" y="254" text-anchor="start" font-size="12" fill="#495057">merge rule, shuffles with partners 16, 8, 4, 2, 1 away</text>
+  <text x="420" y="245" text-anchor="start" font-size="12" fill="#212529">→ 32 pairs</text>
+  <line x1="215" y1="194" x2="215" y2="214" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="20" y="286" width="390" height="48" rx="6" fill="#ebfbee" stroke="#2f9e44"/>
+  <text x="34" y="306" text-anchor="start" font-size="13" fill="#212529" font-weight="600">3. warp 0</text>
+  <text x="34" y="324" text-anchor="start" font-size="12" fill="#495057">merge rule again, over the 32 pairs in shared memory</text>
+  <text x="420" y="315" text-anchor="start" font-size="12" fill="#212529">→ row_max, row_sum</text>
+  <line x1="215" y1="264" x2="215" y2="284" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="20" y="356" width="390" height="48" rx="6" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="34" y="376" text-anchor="start" font-size="13" fill="#212529" font-weight="600">4. thread 0</text>
+  <text x="34" y="394" text-anchor="start" font-size="12" fill="#495057">loss = log(row_sum) − (z[target] − row_max)</text>
+  <text x="420" y="385" text-anchor="start" font-size="12" fill="#212529">→ losses, max_of_each_row, sum_of_each_row</text>
+  <line x1="215" y1="334" x2="215" y2="354" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="215" y1="132" x2="215" y2="144" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="580" y="146" width="268" height="96" rx="6" fill="#ffffff" stroke="#adb5bd"/>
+  <text x="592" y="166" text-anchor="start" font-size="12" fill="#212529" font-weight="600">update: one more value x</text>
+  <text x="592" y="186" text-anchor="start" font-size="12" fill="#212529" font-style="italic">m′ = max(m, x)</text>
+  <text x="592" y="204" text-anchor="start" font-size="12" fill="#212529" font-style="italic">s = s · exp(m − m′) + exp(x − m′)</text>
+  <text x="592" y="228" text-anchor="start" font-size="11" fill="#868e96">start: m = −∞, s = 0</text>
+  <rect x="580" y="250" width="268" height="96" rx="6" fill="#ffffff" stroke="#adb5bd"/>
+  <text x="592" y="270" text-anchor="start" font-size="12" fill="#212529" font-weight="600">merge: two pairs (m₁, s₁), (m₂, s₂)</text>
+  <text x="592" y="290" text-anchor="start" font-size="12" fill="#212529" font-style="italic">m = max(m₁, m₂)</text>
+  <text x="592" y="308" text-anchor="start" font-size="12" fill="#212529" font-style="italic">s = s₁ · exp(m₁ − m) + s₂ · exp(m₂ − m)</text>
+  <text x="592" y="332" text-anchor="start" font-size="11" fill="#868e96">classifier_add_softmax_part</text>
+</svg>
