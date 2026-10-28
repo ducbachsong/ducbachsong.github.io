@@ -122,14 +122,64 @@ The probabilities are not a step of the forward. They come back by themselves in
 *Table 2. The job is to find $$dz$$. The classifier has no weight and no bias, so $$dz$$ is the only
 gradient.*
 
-$$d\ell$$ comes from the mean. $$L = (\ell_1 + \ell_2 + \cdots + \ell_R) / R$$, and the loss of row
-$$r$$ is in one term only, so:
+**Where $$d\ell$$ comes from: the mean.** $$d\ell_r$$ is short for $$\partial L / \partial \ell_r$$: how
+much the loss of the step moves when the loss of row $$r$$ moves. $$L$$ is the mean of the $$R$$ row
+losses. Two derivative rules are enough to find it:
+
+| rule | what it says | why |
+|---|---|---|
+| a constant times $$x$$ | $$\frac{d}{dx}(c \cdot x) = c$$ | nudge $$x$$ by $$h$$: $$c\,(x + h) - c\,x = c \cdot h$$, so $$c$$ per unit |
+| a sum | the derivative of a sum is the sum of the derivatives; a term without $$x$$ gives 0 | a term without $$x$$ does not move when $$x$$ moves |
+
+*Table 3. The two rules behind $$d\ell$$.*
+
+**A small case first, $$R = 3$$.** Write the mean with the $$\tfrac{1}{3}$$ in front of every term, so
+that each term has the form $$c \cdot x$$:
 
 $$
-d\ell_r = \frac{\partial L}{\partial \ell_r} = \frac{1}{R} = \frac{1}{4096}
+L = \frac{\ell_1 + \ell_2 + \ell_3}{3} = \tfrac{1}{3}\,\ell_1 + \tfrac{1}{3}\,\ell_2 + \tfrac{1}{3}\,\ell_3
 $$
 
-The steps below keep $$d\ell$$ as a letter, so they hold for any value of it.
+Now take the derivative with respect to $$\ell_2$$:
+
+$$
+\begin{aligned}
+\frac{\partial L}{\partial \ell_2}
+  &= \frac{\partial}{\partial \ell_2}\left(\tfrac{1}{3}\,\ell_1\right) + \frac{\partial}{\partial \ell_2}\left(\tfrac{1}{3}\,\ell_2\right) + \frac{\partial}{\partial \ell_2}\left(\tfrac{1}{3}\,\ell_3\right)
+  && \text{derivative of a sum = sum of derivatives} \
+  &= 0 + \tfrac{1}{3} + 0
+  && \ell_1, \ell_3 \text{ hold no } \ell_2 \text{: constants; } \tfrac{1}{3}\,\ell_2 \text{ is } c \cdot x \text{ with } c = \tfrac{1}{3} \
+  &= \tfrac{1}{3}
+\end{aligned}
+$$
+
+**With numbers.** Take $$\ell = [2,\ 4,\ 6]$$:
+
+| | $$\ell_1$$ | $$\ell_2$$ | $$\ell_3$$ | $$L = (\ell_1 + \ell_2 + \ell_3) / 3$$ |
+|---|---:|---:|---:|---:|
+| before | 2 | 4 | 6 | 12 / 3 = 4 |
+| $$\ell_2$$ raised by 0.3 | 2 | 4.3 | 6 | 12.3 / 3 = 4.1 |
+| change | 0 | 0.3 | 0 | 0.1 |
+
+*Table 4. $$L$$ moved 0.1 when $$\ell_2$$ moved 0.3: $$0.1 / 0.3 = \tfrac{1}{3}$$ per unit, the
+derivative.*
+
+**Any $$R$$.** The same, with $$\tfrac{1}{R}$$ in front of every term:
+
+$$
+\begin{aligned}
+L &= \tfrac{1}{R}\,\ell_1 + \tfrac{1}{R}\,\ell_2 + \cdots + \tfrac{1}{R}\,\ell_r + \cdots + \tfrac{1}{R}\,\ell_R \
+\frac{\partial L}{\partial \ell_r}
+  &= 0 + 0 + \cdots + \tfrac{1}{R} + \cdots + 0
+  && \text{only the term } \tfrac{1}{R}\,\ell_r \text{ holds } \ell_r \
+d\ell_r &= \frac{1}{R} = \frac{1}{4096}
+  && R = 4 \times 1024 \text{ rows in GPT-2 small}
+\end{aligned}
+$$
+
+So $$\tfrac{1}{R}$$ is simply the number in front of $$\ell_r$$ in the formula for $$L$$, and that number
+is the derivative. It is the same for every row: each row counts $$\tfrac{1}{4096}$$ in the mean. The
+steps below keep $$d\ell$$ as a letter, so they hold for any value of it.
 
 ### 1.4 The running example
 
@@ -147,7 +197,7 @@ $$d\ell = 1$$; in training every number of $$dz$$ is then multiplied by $$1/4096
 | F5: $$\ell = \log S - a_t$$ | | | | | $$0.4197166 - (-1) =$$ **1.4197166** |
 | $$p = e / S$$ | 0.0889468 | 0.2417825 | 0.6572330 | 0.0120376 | sum 1 |
 
-*Table 3. The example, forward. The right word got 24% of the probability, and
+*Table 5. The example, forward. The right word got 24% of the probability, and
 $$-\log 0.2417825 = 1.4197166$$, the loss of F5.*
 
 ### 1.5 Where each value is used
@@ -169,7 +219,7 @@ Figure 1 is the whole plan. Seven arrows, so seven backward steps, from the loss
 | B6 | F2: $$z \to a$$ and $$m \to a$$ | $$dz^{(1)}$$, the first part of $$dz$$, and $$dm$$ |
 | B7 | F1: $$z \to m$$ | $$dz^{(2)}$$, and $$dz = dz^{(1)} + dz^{(2)}$$ |
 
-*Table 4. The plan. Each step needs the gradient of the step before it: that is the chain rule.*
+*Table 6. The plan. Each step needs the gradient of the step before it: that is the chain rule.*
 
 ## 2. Three rules and three derivatives
 
@@ -181,7 +231,7 @@ Every step below uses the same three rules as the earlier notes [2, 3, 4], and n
 | **shared value: sum** | $$a$$ is used in many places (all columns of a row) | add one chain-rule term per place: $$\frac{\partial L}{\partial a} = \sum_k \frac{\partial L}{\partial b_k} \cdot \frac{\partial b_k}{\partial a}$$, written short as $$da = \sum_k db_k \cdot \partial b_k / \partial a$$ |
 | **used twice: add the parts** | $$a$$ is used by two different forward steps | each step gives one part; $$da$$ = part 1 + part 2 |
 
-*Table 5. The three rules. The classifier needs all three: $$m$$ is used by every column (B6), and
+*Table 7. The three rules. The classifier needs all three: $$m$$ is used by every column (B6), and
 $$a_t$$ and $$z$$ are each used by two steps (B5, B7).*
 
 
@@ -216,7 +266,7 @@ Three derivatives are needed beyond the rules:
 | $$\log S$$ | $$1 / S$$ | log undoes exp |
 | $$\max_k z_k$$ | 1 for the largest $$z_j$$, 0 for the others | only the largest moves the max |
 
-*Table 6. The three derivatives. The max has no slope where two scores tie for largest, but B7 shows
+*Table 8. The three derivatives. The max has no slope where two scores tie for largest, but B7 shows
 that it never matters.*
 
 **The derivative of exp.** exp turns a sum into a product, $$\exp(a + h) = \exp(a) \cdot \exp(h)$$, and
@@ -266,7 +316,7 @@ $$
   &= \frac{\partial}{\partial S}\left(\log S\right) - \frac{\partial}{\partial S}\left(a_t\right)
   && \text{derivative of a difference = difference of derivatives} \\
   &= \frac{1}{S} - 0 = \frac{1}{S}
-  && \text{Table 6; } a_t \text{ is held fixed, so it is a constant} \\
+  && \text{Table 8; } a_t \text{ is held fixed, so it is a constant} \\
 \frac{\partial L}{\partial S} &= \frac{\partial L}{\partial \ell} \cdot \frac{\partial \ell}{\partial S}
   && \text{chain rule: } S \text{ affects } L \text{ only through } \ell \\
 dS &= d\ell \cdot \frac{1}{S} = \frac{d\ell}{S}
@@ -296,7 +346,7 @@ No sum: no other row's loss holds $$S_r$$.
 | after | 1.5315304 | 0.4262674 | 1.4262674 |
 | change | 0.01 | 0.0065508 | 0.0065508 |
 
-*Table 7. $$dS$$ says the loss moves $$0.01 \times 0.6572330 = 0.0065723$$; it moved 0.0065508. The
+*Table 9. $$dS$$ says the loss moves $$0.01 \times 0.6572330 = 0.0065723$$; it moved 0.0065508. The
 smaller the nudge, the closer the two.*
 
 **Why $$1/S$$.** log measures a change as a fraction of what is already there: 0.01 added to a sum of
@@ -339,7 +389,7 @@ moved.
 | B1 | $$S_r$$ | only $$\ell_r$$ | no | one per row: `{4, 1024}` |
 | B2 | $$e_{r,j}$$ | only $$S_r$$ | no | one per value: `{4, 1024, 50304}` |
 
-*Table 8. So far nothing is shared, so there is no sum. The first sum comes in B6.*
+*Table 10. So far nothing is shared, so there is no sum. The first sum comes in B6.*
 
 ### 3.3 B3: the shifted scores, part 1, $$da^{(1)}$$
 
@@ -348,7 +398,7 @@ moved.
 $$
 \begin{aligned}
 \frac{\partial e_j}{\partial a_j} &= \exp(a_j) = e_j
-  && \text{Table 6: exp is its own slope} \\
+  && \text{Table 8: exp is its own slope} \\
 \frac{\partial L}{\partial a_j}\Big\rvert_{\text{through } e_j} &= \frac{\partial L}{\partial e_j} \cdot \frac{\partial e_j}{\partial a_j}
   && \text{chain rule, along the arrow F3} \\
 da^{(1)}_j &= de_j \cdot e_j
@@ -372,7 +422,7 @@ $$
 | 1 | F3: $$e_j = \exp(a_j)$$, every column | $$da^{(1)}_j = de_j \cdot e_j$$ | B3, here |
 | 2 | F5: $$\ell = \log S - a_t$$, the target's column only | $$da^{(2)}_j$$ | B4, next |
 
-*Table 9. $$da_j = da^{(1)}_j + da^{(2)}_j$$. After B3 it is not finished, and nothing may go further
+*Table 11. $$da_j = da^{(1)}_j + da^{(2)}_j$$. After B3 it is not finished, and nothing may go further
 back with it until part 2 is added (B5).*
 
 **Example.**
@@ -383,7 +433,7 @@ back with it until part 2 is added (B5).*
 | $$e_j$$ (F3) | 0.1353353 | 0.3678794 | 1 | 0.0183156 |
 | $$da^{(1)}_j = de_j \cdot e_j$$ | 0.0889468 | 0.2417825 | 0.6572330 | 0.0120376 |
 
-*Table 10. B3 in the example. The last row is $$p$$ of Table 3, exactly.*
+*Table 12. B3 in the example. The last row is $$p$$ of Table 5, exactly.*
 
 **What it means.** Raise $$a_1$$ by 0.01, from −1 to −0.99. $$e_1$$ goes from 0.3678794 to
 0.3715767, up by 0.0036972: about $$0.01 \times e_1 = 0.0036788$$, since exp's slope is its value. $$S$$
@@ -407,7 +457,7 @@ $$
   &= \frac{\partial}{\partial a_j}\left(\log S\right) - \frac{\partial a_t}{\partial a_j}
   && \text{derivative of a difference} \\
   &= 0 - [j = t]
-  && S \text{ is held fixed; see Table 11 for } \partial a_t / \partial a_j \\
+  && S \text{ is held fixed; see Table 13 for } \partial a_t / \partial a_j \\
 \frac{\partial L}{\partial a_j}\Big\rvert_{\text{straight into } \ell} &= \frac{\partial L}{\partial \ell} \cdot \frac{\partial \ell}{\partial a_j}
   && \text{chain rule, along the arrow F5} \\
 da^{(2)}_j &= d\ell \cdot \big(-[j = t]\big) = -d\ell \cdot [j = t]
@@ -422,7 +472,7 @@ F5 holds one shifted score only, the target's. Whether it holds $$a_j$$ depends 
 | $$j = t$$ | 1 | $$a_t$$ is $$a_j$$ itself | $$-d\ell$$ |
 | $$j \ne t$$ | 0 | $$a_t$$ is another column's value: a constant | 0 |
 
-*Table 11. $$[j = t]$$ is these two lines written as one.*
+*Table 13. $$[j = t]$$ is these two lines written as one.*
 
 **The whole batch.** Each row has its own target $$t_r$$, the next word of the text. Exactly one column
 per row gets $$-d\ell_r$$:
@@ -467,14 +517,14 @@ $$da_{r,j} = da^{(1)}_{r,j} + da^{(2)}_{r,j}$$.
 | $$da^{(2)}$$ (B4): path 2, the target | 0 | −1 | 0 | 0 |
 | $$da = da^{(1)} + da^{(2)}$$ | **0.0889468** | **−0.7582175** | **0.6572330** | **0.0120376** |
 
-*Table 12. The two parts of $$da$$. Only the target's column has two; the others have only the first.*
+*Table 14. The two parts of $$da$$. Only the target's column has two; the others have only the first.*
 
 | part | what happens when $$a_j$$ changes | gradient part |
 |---|---|---|
 | 1 | $$e_j$$ changes, so $$S$$ changes, so $$\log S$$ changes: every column | $$d\ell \cdot e_j / S$$ |
 | 2 | $$a_t$$ itself changes: the target's column only | $$-d\ell$$ |
 
-*Table 13. Part 1 pushes every word down, by its probability; part 2 pushes the right word up, by 1.*
+*Table 15. Part 1 pushes every word down, by its probability; part 2 pushes the right word up, by 1.*
 
 **What it means.** Raise $$a_1$$ by 0.01. Path 1 raises the loss by 0.0024270 (B3), path 2 lowers it by
 0.01 (B4): in all, the loss goes down by 0.0075730, about $$0.01 \times 0.7582175$$. Path 2 wins:
@@ -529,7 +579,7 @@ $$
 | $$z_j$$ | $$+1$$ | only $$a_j$$ | $$dz^{(1)}_j = da_j$$, no sum |
 | $$m$$ | $$-1$$ | every $$a_k$$ of the row | $$dm = -\sum_k da_k$$, sum over columns |
 
-*Table 14. Subtraction passes the gradient to $$z_j$$ unchanged: raise $$z_j$$ by 0.01 with $$m$$
+*Table 16. Subtraction passes the gradient to $$z_j$$ unchanged: raise $$z_j$$ by 0.01 with $$m$$
 fixed, and $$a_j$$ goes up by exactly 0.01. Raise $$m$$ by 0.01, and every $$a_k$$ goes down by 0.01 at
 once.*
 
@@ -564,7 +614,7 @@ $$e_k$$ is multiplied by $$e^{-0.1} = 0.9048374$$, and so is their sum:
 | $$m$$ raised by 0.1 | 1.3767376 | 0.3197166 | −1.1 | 1.4197166 |
 | change | $$\times\, 0.9048374$$ | −0.1 | −0.1 | 0 |
 
-*Table 15. $$\log S$$ and $$a_t$$ both go down by exactly 0.1, and they cancel in F5. This is the
+*Table 17. $$\log S$$ and $$a_t$$ both go down by exactly 0.1, and they cancel in F5. This is the
 cancelling of Section 1.1, the $$\exp(m)$$ between top and bottom, seen from the backward side.*
 
 ### 3.7 B7: the logits, part 2, and complete, $$dz$$
@@ -574,7 +624,7 @@ cancelling of Section 1.1, the $$\exp(m)$$ between top and bottom, seen from the
 $$
 \begin{aligned}
 \frac{\partial m}{\partial z_j} &= [j \text{ is the largest}]
-  && \text{Table 6} \\
+  && \text{Table 8} \\
 \frac{\partial L}{\partial z_j}\Big\rvert_{\text{through } m} &= \frac{\partial L}{\partial m} \cdot \frac{\partial m}{\partial z_j}
   && \text{chain rule, along the arrow F1} \\
 dz^{(2)}_j &= 0 \cdot [j \text{ is the largest}] = 0
@@ -589,7 +639,7 @@ $$
 | 1 | F2: $$a_j = z_j - m$$ | $$dz^{(1)}_j = da_j$$ | B6 |
 | 2 | F1: $$m = \max_k z_k$$, the largest column only | $$dz^{(2)}_j = dm \cdot [j \text{ is the largest}]$$ | B7, here |
 
-*Table 16. Both parts are now known.*
+*Table 18. Both parts are now known.*
 
 By the used-twice rule:
 
@@ -614,8 +664,8 @@ This is the gradient sent to the layer before, the head: `{4, 1024, 50304}`, the
 | $$0.01 \times dz_j$$ | 0.0008895 | −0.0075822 | 0.0065723 | 0.0001204 |
 | the loss's change | 0.0008935 | −0.0075730 | 0.0065836 | 0.0001210 |
 
-*Table 17. The gradient says how much each logit moves the loss. Word 2 is the largest, so raising it
-raises $$m$$ too, but through $$m$$ it changes nothing (Table 15).*
+*Table 19. The gradient says how much each logit moves the loss. Word 2 is the largest, so raising it
+raises $$m$$ too, but through $$m$$ it changes nothing (Table 17).*
 
 The path through the max carries nothing, because $$dm$$ is 0. That is why the max can be used without
 worrying about its missing slope where two scores tie: whatever its slope is, it is multiplied by 0.
@@ -632,7 +682,7 @@ worrying about its missing slope where two scores tie: whatever its slope is, it
 | B6 | F2 | logit, part 1; max | $$dz^{(1)}_j = da_j$$; $$dm = -\sum_k da_k$$ | −0.7582175; $$dm = 0$$ |
 | B7 | F1 | logit, complete | $$dz_j = dz^{(1)}_j + dm \cdot [j \text{ is the largest}]$$ | −0.7582175 |
 
-*Table 18. The backward pass, broken down. B1 needs only $$d\ell$$ and $$S$$; B2 to B7 each need the step
+*Table 20. The backward pass, broken down. B1 needs only $$d\ell$$ and $$S$$; B2 to B7 each need the step
 before. B4 needs only $$d\ell$$ and the target.*
 
 Side by side with the three earlier notes:
@@ -644,12 +694,12 @@ Side by side with the three earlier notes:
 | a gradient summed over a row | $$dr$$, $$dv$$, $$d\mu$$ | $$dx$$, over the outputs | none: values never mix | $$dm$$, and it is 0 |
 | a value used twice | $$x$$ and $$d$$ | none | $$x$$ | $$a_t$$ and $$z$$ |
 
-*Table 19. Like LayerNorm, the classifier has one sum over the row ($$S$$) and one value taken from the
+*Table 21. Like LayerNorm, the classifier has one sum over the row ($$S$$) and one value taken from the
 whole row ($$m$$). Unlike LayerNorm's, the gradient of that value is always 0.*
 
 ## 4. Rebuilding: C1 and C2
 
-Table 18 has seven steps. This section folds them into one line.
+Table 20 has seven steps. This section folds them into one line.
 
 **C1: one path, one product.** B1, B2 and B3 are one chain: each multiplies the one before by one
 factor. Put them in a row:
@@ -703,7 +753,7 @@ others go down.*
 | $$[j = t]$$ | 0 | 1 | 0 | 0 |
 | $$dz = d\ell \cdot (p - [j = t])$$ | 0.0889468 | −0.7582175 | 0.6572330 | 0.0120376 |
 
-*Table 20. The rebuilt line gives the same $$dz$$ as the seven steps (Table 12). In training,
+*Table 22. The rebuilt line gives the same $$dz$$ as the seven steps (Table 14). In training,
 $$d\ell = 1/4096$$, so word 1's gradient is $$-0.7582175 / 4096 = -0.0001851$$.*
 
 ## 5. Three checks
@@ -737,7 +787,7 @@ and $$d\ell$$:
 | $$[0, 0, 20, 0]$$, target 2: sure, and right | $$\approx 1$$ | $$\approx 0$$ | $$\approx [0, 0, 0, 0]$$: nothing to learn |
 | $$[0, 0, 20, 0]$$, target 0: sure, and wrong | $$\approx 2 \times 10^{-9}$$ | $$\approx 20$$ | $$\approx [-1, 0, 1, 0]$$: the largest push there is |
 
-*Table 21. However wrong the model is, no number of $$dz$$ is larger than $$d\ell$$: the loss can grow
+*Table 23. However wrong the model is, no number of $$dz$$ is larger than $$d\ell$$: the loss can grow
 without limit (Table 1), but its gradient cannot.*
 
 ## 6. What the rebuilt formula gives the kernel
@@ -746,13 +796,13 @@ without limit (Table 1), but its gradient cannot.*
 
 The seven steps and the one line give the same numbers, but they are very different programs:
 
-| | broken down (Table 18) | rebuilt (C2) |
+| | broken down (Table 20) | rebuilt (C2) |
 |---|---|---|
 | per word, besides $$dz$$ | $$a$$, $$e$$, $$de$$, $$da^{(1)}$$, $$da^{(2)}$$, $$da$$, $$dz^{(1)}$$, $$dz^{(2)}$$ | $$p$$: in registers, never stored |
 | kept by the forward and needed | $$e$$ (or $$p$$) for every word | $$m$$ and $$S$$: two floats per row |
 | GPU memory | many tensors of 206M values | read $$z$$, write $$dz$$ |
 
-*Table 22. In GPT-2 small, the logits are 4 × 1024 × 50304 = 206M floats, 824 MB, by far the largest
+*Table 24. In GPT-2 small, the logits are 4 × 1024 × 50304 = 206M floats, 824 MB, by far the largest
 tensor of the model. One more tensor of that size costs 824 MB; $$m$$ and $$S$$ for every row cost
 32 KB.*
 
@@ -785,7 +835,7 @@ $$
 | 3 | 3 | $$1.3678794 \cdot e^{2-3} + e^{0} = 1.5032147$$ |
 | −1 | 3 | $$1.5032147 \cdot e^{0} + e^{-1-3} = 1.5215304$$ |
 
-*Table 23. The same $$m = 3$$ and $$S = 1.5215304$$ as F1 and F4 (Table 3), in one pass.*
+*Table 25. The same $$m = 3$$ and $$S = 1.5215304$$ as F1 and F4 (Table 5), in one pass.*
 
 The same rule puts two partial results together, which is what lets many threads share a row:
 
@@ -821,7 +871,7 @@ In the formulas, a padding column is a word with $$e_j = 0$$: it adds nothing to
 | float4 12,564: columns 50256 to 50259 | column 50256 is a word; the other three are set to the lowest float, so their exp is 0 | columns from 50257 get 0 |
 | float4s 12,565 to 12,575 | padding only: not read | written as 0 |
 
-*Table 24. Every float4 the forward reads starts with a word, so the max of its 4 values is always a real
+*Table 26. Every float4 the forward reads starts with a word, so the max of its 4 values is always a real
 score, and padding never counts as $$\exp(0) = 1$$.*
 
 ### 6.4 C2 in the kernel
@@ -838,7 +888,7 @@ The backward kernel is C2 written out, one thread per float4, 51,511,296 float4s
 | $$[j = t]$$ | `one_at_target` | `column == target ? 1.0f : 0.0f` |
 | $$dz_j = d\ell\,(p_j - [j = t])$$ | `logits_grad` | `(prob - one_at_target) * row_loss_grad`, 0 for padding |
 
-*Table 25. Each value of $$dz$$ needs its own logit and four numbers of its row: $$m$$, $$S$$, $$t$$ and
+*Table 27. Each value of $$dz$$ needs its own logit and four numbers of its row: $$m$$, $$S$$, $$t$$ and
 $$d\ell$$.*
 
 **Working $$p$$ out again instead of keeping it.** Keeping $$p$$ would cost the forward one more 824 MB
