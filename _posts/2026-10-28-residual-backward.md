@@ -2,7 +2,7 @@
 title: "Residual add backward, broken down and rebuilt: one plus sign and a gradient that passes through"
 date: 2026-10-28
 modified: 2026-10-28
-version: 1
+version: 2
 permalink: /posts/residual-backward/
 excerpt: "Every block of GPT-2 adds what its attention or MLP gives back onto the row it was given: y = r + b. The backward pass of that add is the shortest of all, the gradient going on unchanged to both, but the residual is also the branch's input, so its gradient has a second part, and that part is where the add earns its place. This note takes one add apart into four small steps, each derived with the chain rule written out in full, and works one row of 4 numbers through all of them. Then it puts them back together, for one add and for 24 of them stacked, and shows why the gradient reaches the first block of a deep network at all: the product of 24 slopes becomes a product of 24 times (1 + slope), and its first term, 1, is a path that skips every branch."
 tags:
@@ -12,17 +12,18 @@ tags:
   - notes
 ---
 
-**What this is.** Every block of GPT-2 small does two things, attention and an MLP, and after each it
-adds the result back onto the row it started from. That add, the **residual add**, is one line forward
+**What this is.** Every block of GPT-2 small does two things, attention and an MLP. After each, it adds
+what it computed back onto the row it was given. That add, the **residual add**, is one line forward
 and one line backward:
 
 $$
 y = r + b \qquad\qquad dr = dy \qquad db = dy
 $$
 
-The backward line is correct, and it is what the kernel in my GPT-2 trainer [1] runs, but it is only
-half the story: $$r$$ is also the input of the branch that made $$b$$, so $$dr = dy$$ is only the first
-part of $$r$$'s gradient. This note **breaks it down** into four small steps, B1 to B4, each derived
+with $$r$$ the row coming in, $$b$$ what the layers computed from it, and $$y$$ the row going on to the
+next layer (Section 1.1 shows each with a number). The backward line is correct, and it is what the
+kernel in my GPT-2 trainer [1] runs, but it is only half the story: $$b$$ was computed from $$r$$, so
+$$dr = dy$$ is only the first part of $$r$$'s gradient. This note **breaks it down** into four small steps, B1 to B4, each derived
 with the chain rule written out in full. Then it **rebuilds** them, in two moves, C1 and C2: one add,
 then 24 adds stacked, as in GPT-2 small. One row of 4 numbers goes through every step, so each formula
 has a number next to it.
@@ -38,20 +39,45 @@ small branches at the start are GPT-2's [8]; the kernel is llm.c's `residual_for
 
 ## 1. The forward pass
 
-### 1.1 What the residual add does: the branch learns a change
+### 1.1 What the residual add does: two paths, then an add
 
-A block of GPT-2 takes a row of 768 numbers, one token, and gives a row of 768 back. Without the add,
-the block would have to give the whole new row: $$y = f(r)$$. With it, the block gives only a
-**change**, and the add puts the change onto the row:
+A block of GPT-2 takes a row of 768 numbers, one token, and gives a row of 768 back. Look at one half of
+a block, the attention half. The row coming in goes along **two paths at once**:
 
-$$
-y = r + f(r)
-$$
+```
+                 ┌──► LayerNorm ──► attention ──► linear ──┐    top path: works out something from the row
+row coming in ───┤                                         + ──► row going out, to the next layer
+                 └─────────────────────────────────────────┘    bottom path: a plain wire, carries the row as it is
+```
 
-$$f$$ is the **branch**: LayerNorm, then attention (or the MLP), then a linear layer. $$r$$ is the
-**residual**: the row the block was given, which goes around the branch unchanged, along the **skip**.
-A branch that gives 0 makes the block do nothing, $$y = r$$: a block starts close to that and only has
-to learn what to change.
+At the end, the two paths are added, value by value. For one value of the row:
+
+| | value |
+|---|---:|
+| the row coming in | 1 |
+| the top path works out, from it | 0.5 |
+| the bottom path carries, unchanged | 1 |
+| the row going out: the two added | 1 + 0.5 = 1.5 |
+
+*Table 1. One value through one residual add.*
+
+Each of these has a name in the rest of the note:
+
+| name | what it is | in Table 1 |
+|---|---|---:|
+| $$r$$, the **residual** | the row coming in | 1 |
+| $$f$$, the **branch** | the top path: LayerNorm, then attention (or the MLP), then a linear layer | — |
+| $$b = f(r)$$, the **branch output** | what the top path works out from $$r$$ | 0.5 |
+| the **skip** | the bottom path: it does nothing, it only carries $$r$$ around the branch | — |
+| $$y = r + b$$, the **output** | the row going out, to the next layer | 1.5 |
+
+*Table 2. The names. Only the branch has weights and learns; the skip and the add have nothing to
+learn.*
+
+**Why two paths, and not only the top one.** With only the top path, the branch would have to work out
+the whole new row, 1.5, by itself: $$y = f(r)$$. With the skip, the row 1 is already there, and the
+branch only has to work out the **change**, +0.5. A branch that gives 0 changes nothing, $$y = r$$, and
+the row goes on as it came. A new block starts close to that, and learns only what to add.
 
 GPT-2 small has 12 blocks and two adds in each, 24 in all, one after the attention and one after the
 MLP:
@@ -87,7 +113,7 @@ own note (LayerNorm [2], linear [3], GELU [4]). Here it matters only that the br
 | $$\partial$$ | partial derivative: change one variable, hold all others fixed | — |
 | $$da$$ | short for $$\partial L / \partial a$$, for any variable $$a$$; same shape as $$a$$ | — |
 
-*Table 1. $$dy$$ is given: it is what the layer after the add sends back. The job is to find $$db$$,
+*Table 3. $$dy$$ is given: it is what the layer after the add sends back. The job is to find $$db$$,
 which goes on into the branch's backward, and $$dr$$, which goes on to the block before. The add has
 no weight and no bias.*
 
@@ -110,7 +136,7 @@ And a stand-in loss whose gradient is exactly a chosen $$dy$$: $$L = \sum_i dy_i
 | F1: $$y = r + b$$ | **1.5** | **0** | **3** | **6** |
 | $$dy$$, from the layer after | 1 | −2 | 0.5 | 3 |
 
-*Table 2. The example. Value 1's branch takes away exactly what the skip brings: $$y_1 = 2 - 2 = 0$$.
+*Table 4. The example. Value 1's branch takes away exactly what the skip brings: $$y_1 = 2 - 2 = 0$$.
 The stand-in loss is $$L = 1 \times 1.5 + (-2) \times 0 + 0.5 \times 3 + 3 \times 6 = 21$$.*
 
 Why the stand-in loss has gradient $$dy$$: $$L = dy_0\, y_0 + dy_1\, y_1 + dy_2\, y_2 + dy_3\, y_3$$, and
@@ -135,7 +161,7 @@ Figure 1 is the whole plan:
 | B3 | the branch: $$r \to b$$ | $$dr^{(2)}$$, the second part of $$dr$$ |
 | B4 | — | $$dr = dr^{(1)} + dr^{(2)}$$, sent to the block before |
 
-*Table 3. B1 and B2 are the add's own. B3 is the branch's backward, run by the branch's kernels; it is
+*Table 5. B1 and B2 are the add's own. B3 is the branch's backward, run by the branch's kernels; it is
 here because without it $$dr$$ is not finished.*
 
 ## 2. Three rules and one derivative
@@ -148,7 +174,7 @@ Every step below uses the same three rules as the earlier notes [2, 3, 4, 5], an
 | **shared value: sum** | $$a$$ is used in many places | add one chain-rule term per place: $$\frac{\partial L}{\partial a} = \sum_k \frac{\partial L}{\partial b_k} \cdot \frac{\partial b_k}{\partial a}$$ |
 | **used twice: add the parts** | $$a$$ is used by two different forward steps | each step gives one part; $$da$$ = part 1 + part 2 |
 
-*Table 4. The three rules. The add needs the first and the third: $$r$$ is used twice, by F1 and by
+*Table 6. The three rules. The add needs the first and the third: $$r$$ is used twice, by F1 and by
 the branch.*
 
 **The chain rule, in full.** Every gradient in this note is a $$\partial L / \partial(\cdot)$$: how much
@@ -178,7 +204,7 @@ One derivative is needed, of a sum, with two rules:
 | the derivative of $$x$$ | $$\frac{d}{dx}\, x = 1$$ | nudge $$x$$ by $$h$$: it moves by $$h$$, so 1 per unit |
 | a sum | the derivative of a sum is the sum of the derivatives; a term without $$x$$ gives 0 | a term without $$x$$ does not move when $$x$$ moves |
 
-*Table 5. The two rules behind $$\partial y / \partial r$$ and $$\partial y / \partial b$$.*
+*Table 7. The two rules behind $$\partial y / \partial r$$ and $$\partial y / \partial b$$.*
 
 ## 3. Breaking it down: B1 to B4
 
@@ -225,7 +251,7 @@ This is what goes into the branch's backward: the gradient arriving at its last 
 | after | −1.99 | 0.01 | 20.98 |
 | change | 0.01 | 0.01 | −0.02 |
 
-*Table 6. $$L$$ moved −0.02 when $$b_1$$ moved 0.01: −2 per unit, $$db_1$$. $$y_1$$ moved exactly as
+*Table 8. $$L$$ moved −0.02 when $$b_1$$ moved 0.01: −2 per unit, $$db_1$$. $$y_1$$ moved exactly as
 much as $$b_1$$, so $$L$$ moved as it would for $$y_1$$ itself: $$dy_1 = -2$$.*
 
 **Why 1.** An add passes any change of one input to the output whole: $$b$$ up by 0.01 is $$y$$ up by
@@ -262,7 +288,7 @@ $$
 | 1 | F1: $$y = r + b$$, the skip | $$dr^{(1)} = dy$$ | B2, here |
 | 2 | the branch: $$b = f(r)$$ | $$dr^{(2)}$$ | B3, next |
 
-*Table 7. $$dr = dr^{(1)} + dr^{(2)}$$. After B2 it is not finished, and nothing may go further back
+*Table 9. $$dr = dr^{(1)} + dr^{(2)}$$. After B2 it is not finished, and nothing may go further back
 with it until part 2 is added (B4).*
 
 **Example.** $$dr^{(1)} = dy = [1,\ -2,\ 0.5,\ 3]$$: the same as $$db$$.
@@ -323,7 +349,7 @@ $$
 | $$w$$, the stand-in's slope | 0.5 | −1 | 0 | 0.5 |
 | $$dr^{(2)} = db \cdot w$$ | 0.5 | 2 | 0 | 1.5 |
 
-*Table 8. B3 in the example. Value 2's branch is flat ($$w = 0$$), so nothing comes back through it.*
+*Table 10. B3 in the example. Value 2's branch is flat ($$w = 0$$), so nothing comes back through it.*
 
 **What it means.** Raise $$r_3$$ by 0.01 and let **only the branch** see it, holding the skip fixed:
 $$b_3 = 0.5\, r_3$$ goes up by 0.005, $$y_3$$ by 0.005, and $$L$$ by $$3 \times 0.005 = 0.015$$. That is
@@ -355,7 +381,7 @@ $$dr_{t,i} = dr^{(1)}_{t,i} + dr^{(2)}_{t,i}$$. This is the gradient sent to the
 | $$dr^{(2)}$$ (B3): road 2, the branch | 0.5 | 2 | 0 | 1.5 |
 | $$dr = dr^{(1)} + dr^{(2)}$$ | **1.5** | **0** | **0.5** | **4.5** |
 
-*Table 9. The two parts of $$dr$$.*
+*Table 11. The two parts of $$dr$$.*
 
 **What it means.** Raise each $$r_i$$ by 0.01, and let both roads see it: $$y_i = r_i + w_i\, r_i$$
 moves by $$0.01\,(1 + w_i)$$, and $$L$$ by $$dy_i$$ times that:
@@ -366,7 +392,7 @@ moves by $$0.01\,(1 + w_i)$$, and $$L$$ by $$dy_i$$ times that:
 | $$L$$ moves by $$dy_i$$ times that | 0.015 | 0 | 0.005 | 0.045 |
 | per unit: $$dr_i$$ | 1.5 | 0 | 0.5 | 4.5 |
 
-*Table 10. Value 1: the branch's slope is −1, so whatever the skip brings the branch takes away,
+*Table 12. Value 1: the branch's slope is −1, so whatever the skip brings the branch takes away,
 $$y_1 = r_1 - r_1 = 0$$ always, and $$r_1$$ has no say in the loss. Value 2: the branch is flat, and
 only the skip carries the gradient.*
 
@@ -375,7 +401,7 @@ only the skip carries the gradient.*
 | 1 | $$y$$ changes along the skip, one for one | $$dy$$: always all of it |
 | 2 | the branch's output changes, so $$y$$ changes | $$db \cdot \partial b / \partial r$$: as much as the branch's slope lets through |
 
-*Table 11. Part 1 needs nothing from the branch: whatever the branch's slope, $$dy$$ reaches $$r$$.*
+*Table 13. Part 1 needs nothing from the branch: whatever the branch's slope, $$dy$$ reaches $$r$$.*
 
 ### 3.5 All four steps
 
@@ -386,7 +412,7 @@ only the skip carries the gradient.*
 | B3 | the branch | residual, part 2 | $$dr^{(2)} = db \cdot \partial b / \partial r$$ | 1.5 |
 | B4 | — | residual, complete | $$dr = dr^{(1)} + dr^{(2)}$$ | 4.5 |
 
-*Table 12. The backward pass, broken down. B1 and B2 need only $$dy$$; B3 needs B1 and the branch; B4
+*Table 14. The backward pass, broken down. B1 and B2 need only $$dy$$; B3 needs B1 and the branch; B4
 needs both parts.*
 
 Side by side with the four earlier notes:
@@ -398,7 +424,7 @@ Side by side with the four earlier notes:
 | a gradient summed over a row | $$dr$$, $$dv$$, $$d\mu$$ | $$dx$$, over the outputs | none | $$dm$$, and it is 0 | none |
 | a value used twice | $$x$$ and $$d$$ | none | $$x$$ | $$a_t$$ and $$z$$ | $$r$$ |
 
-*Table 13. The add is the simplest of the five on its own, two copies. Its weight is in the value it
+*Table 15. The add is the simplest of the five on its own, two copies. Its weight is in the value it
 uses twice.*
 
 ## 4. Rebuilding: C1 and C2
@@ -465,14 +491,14 @@ skips there is only one road, through every branch, and the gradient is the prod
 | −0.05 | 0.2919890 | $$6.0 \times 10^{-32}$$ |
 | 0.5 | 16,834 | $$5.96 \times 10^{-8}$$ |
 
-*Table 14. Without the skip, a branch with a small slope shrinks the gradient at every block: after 24,
+*Table 16. Without the skip, a branch with a small slope shrinks the gradient at every block: after 24,
 nothing is left for the first layers to learn from. With it, small slopes keep the gradient near 1.*
 
 ![The gradient through 24 adds](/images/residual-backward/fig2-through-24-adds.svg)
 *Figure 2. The gradient after going back through $$k$$ adds, starting from 1, for $$s = \pm 0.05$$ with
 the skip and $$s = 0.05$$ without. The y axis is logarithmic.*
 
-Table 14's last line shows the other side: large slopes make the product with the skip grow too. So
+Table 16's last line shows the other side: large slopes make the product with the skip grow too. So
 the skip keeps the gradient near 1 **when the branches start small**, and GPT-2 makes sure they do.
 
 ### 4.3 Why GPT-2 starts its branches small
@@ -491,7 +517,7 @@ $$
 If the $$b_k$$ are random and independent, each with variance $$\sigma^2$$, their variances add up: the
 sum has variance $$24\, \sigma^2$$, a spread $$\sqrt{24} = 4.90$$ times each one's. Making each $$b_k$$
 $$\sqrt{24}$$ times smaller makes their sum as spread as one of them. Small $$b_k$$ also means small
-branch slopes, the $$s$$ of Table 14: the gradient starts near the "with the skip, $$s \approx 0$$" line.
+branch slopes, the $$s$$ of Table 16: the gradient starts near the "with the skip, $$s \approx 0$$" line.
 
 ## 5. Three checks
 
@@ -507,7 +533,7 @@ yet does not stop the gradient on its way to the blocks before it.
 
 **A branch with slope −1 cuts the block off.** If $$f'(r) = -1$$, then $$dr = dy \cdot (1 - 1) = 0$$: the
 branch takes away whatever the skip brings, and $$r$$ has no say in the loss. Value 1 of the example is
-this case: $$y_1 = 2 - 2 = 0$$ and $$dr_1 = 0$$ (Table 10). It is the one slope the skip cannot pass.
+this case: $$y_1 = 2 - 2 = 0$$ and $$dr_1 = 0$$ (Table 12). It is the one slope the skip cannot pass.
 
 ## 6. What the rebuilt formula gives the kernel
 
@@ -522,7 +548,7 @@ add-onto, both run by other kernels. So the kernel in my trainer [1] (`residual.
 | $$dr^{(1)} = dy$$, B2 | `residual_grad` | `residual_backward_kernel`: written over (`=`) |
 | $$dr^{(2)}$$, B3, and $$dr = dr^{(1)} + dr^{(2)}$$, B4 | `residual_grad` again | `layer_norm_backward`: its `input_grad` added onto (`+=`) |
 
-*Table 15. B4's add is done by LayerNorm's backward: it adds its input gradient onto what is there
+*Table 17. B4's add is done by LayerNorm's backward: it adds its input gradient onto what is there
 instead of writing over it, for exactly this reason [2].*
 
 **`=` for the add's gradients, `+=` for LayerNorm's**, from the rules of Section 2:
@@ -532,7 +558,7 @@ instead of writing over it, for exactly this reason [2].*
 | $$db$$ | by the add alone: the branch's output goes nowhere else | one part: written over |
 | $$dr$$ | by the add and by the branch's LayerNorm: used twice | two parts: the add writes part 1 over, then LayerNorm's backward adds part 2 onto it |
 
-*Table 16. So the order matters: the add's backward runs first, then the branch's, from its last linear
+*Table 18. So the order matters: the add's backward runs first, then the branch's, from its last linear
 layer back to its LayerNorm.*
 
 **The backward can be no kernel at all.** B1 and B2 only copy $$dy$$. If $$db$$ and $$dr^{(1)}$$ are
