@@ -1,8 +1,8 @@
 ---
 title: "Classifier backward, broken down and rebuilt: softmax, cross-entropy and prob minus one"
 date: 2026-10-26
-modified: 2026-10-27
-version: 3
+modified: 2026-10-28
+version: 4
 permalink: /posts/classifier-backward/
 excerpt: "The last step of GPT-2 turns each row of 50257 scores into one loss, and its backward pass is usually given as one line: dz = p − 1 at the right word. This note takes the forward apart into five small steps, from the logits to a shift by the row's largest score, an exp, a sum and a log, and the backward into seven, each derived line by line with the chain rule, and works one row of four words through all of them. The sum turns every column's gradient into its probability, the target's column gets one more part, −1, and the shift drops out. Then it puts the steps back together into the one line a GPU kernel runs, and shows how the kernel finds the row's largest score and its sum in one read of the row: the online softmax."
 tags:
@@ -177,12 +177,28 @@ Every step below uses the same three rules as the earlier notes [2, 3, 4], and n
 
 | rule | when | what it says |
 |---|---|---|
-| **chain rule** | $$a$$ affects $$L$$ through $$b$$ | $$da = db \cdot \partial b / \partial a$$ |
-| **shared value: sum** | $$a$$ is used in many places (all columns of a row) | add one chain-rule term per place: $$da = \sum_k db_k \cdot \partial b_k / \partial a$$ |
+| **chain rule** | $$a$$ affects $$L$$ only through $$b$$ | $$\frac{\partial L}{\partial a} = \frac{\partial L}{\partial b} \cdot \frac{\partial b}{\partial a}$$, written short as $$da = db \cdot \partial b / \partial a$$ |
+| **shared value: sum** | $$a$$ is used in many places (all columns of a row) | add one chain-rule term per place: $$\frac{\partial L}{\partial a} = \sum_k \frac{\partial L}{\partial b_k} \cdot \frac{\partial b_k}{\partial a}$$, written short as $$da = \sum_k db_k \cdot \partial b_k / \partial a$$ |
 | **used twice: add the parts** | $$a$$ is used by two different forward steps | each step gives one part; $$da$$ = part 1 + part 2 |
 
 *Table 5. The three rules. The classifier needs all three: $$m$$ is used by every column (B6), and
 $$a_t$$ and $$z$$ are each used by two steps (B5, B7).*
+
+
+**The chain rule, in full.** Every gradient in this note is a $$\partial L / \partial(\cdot)$$: how much
+the loss $$L$$ moves per unit that one value moves. $$da$$ is only a short name for
+$$\partial L / \partial a$$. When $$a$$ affects $$L$$ only through $$b$$, there is one road,
+$$a \to b \to \cdots \to L$$: a nudge of $$a$$ moves $$b$$ by $$\partial b / \partial a$$ per unit, and
+each unit of $$b$$ moves $$L$$ by $$\partial L / \partial b$$. So the two rates multiply:
+
+$$
+\underbrace{\frac{\partial L}{\partial a}}_{da} = \underbrace{\frac{\partial L}{\partial b}}_{db} \cdot \frac{\partial b}{\partial a}
+$$
+
+$$\partial L / \partial b$$ is already known, from the step before: the steps go backwards from the
+loss. $$\partial b / \partial a$$ is the local derivative, one forward formula differentiated. If $$a$$
+had two roads to $$L$$, there would be one such product per road, added: that is the used-twice rule.
+Each step below writes the full form first, then the short one.
 
 And one habit: **each step looks at one input and holds the others fixed.** F5,
 $$\ell = \log S - a_t$$, has two inputs: B1 takes the derivative with respect to $$S$$ and holds
@@ -251,8 +267,10 @@ $$
   && \text{derivative of a difference = difference of derivatives} \\
   &= \frac{1}{S} - 0 = \frac{1}{S}
   && \text{Table 6; } a_t \text{ is held fixed, so it is a constant} \\
-dS &= d\ell \cdot \frac{\partial \ell}{\partial S} = \frac{d\ell}{S}
-  && \text{chain rule, along the arrow F5}
+\frac{\partial L}{\partial S} &= \frac{\partial L}{\partial \ell} \cdot \frac{\partial \ell}{\partial S}
+  && \text{chain rule: } S \text{ affects } L \text{ only through } \ell \\
+dS &= d\ell \cdot \frac{1}{S} = \frac{d\ell}{S}
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -296,8 +314,10 @@ $$
   &= \frac{\partial}{\partial e_j}\left(e_1 + \cdots + e_j + \cdots + e_V\right) \\
   &= 0 + \cdots + 1 + \cdots + 0 = 1
   && \text{every other } e_k \text{ is a constant} \\
-de_j &= dS \cdot \frac{\partial S}{\partial e_j} = dS \cdot 1 = dS
-  && \text{chain rule, along the arrow F4}
+\frac{\partial L}{\partial e_j} &= \frac{\partial L}{\partial S} \cdot \frac{\partial S}{\partial e_j}
+  && \text{chain rule: } e_j \text{ affects } L \text{ only through } S \\
+de_j &= dS \cdot 1 = dS
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -329,8 +349,10 @@ $$
 \begin{aligned}
 \frac{\partial e_j}{\partial a_j} &= \exp(a_j) = e_j
   && \text{Table 6: exp is its own slope} \\
-da^{(1)}_j &= de_j \cdot \frac{\partial e_j}{\partial a_j} = de_j \cdot e_j
-  && \text{chain rule, along the arrow F3}
+\frac{\partial L}{\partial a_j}\Big\rvert_{\text{through } e_j} &= \frac{\partial L}{\partial e_j} \cdot \frac{\partial e_j}{\partial a_j}
+  && \text{chain rule, along the arrow F3} \\
+da^{(1)}_j &= de_j \cdot e_j
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -386,8 +408,10 @@ $$
   && \text{derivative of a difference} \\
   &= 0 - [j = t]
   && S \text{ is held fixed; see Table 11 for } \partial a_t / \partial a_j \\
-da^{(2)}_j &= d\ell \cdot \frac{\partial \ell}{\partial a_j} = -d\ell \cdot [j = t]
-  && \text{chain rule, along the arrow F5}
+\frac{\partial L}{\partial a_j}\Big\rvert_{\text{straight into } \ell} &= \frac{\partial L}{\partial \ell} \cdot \frac{\partial \ell}{\partial a_j}
+  && \text{chain rule, along the arrow F5} \\
+da^{(2)}_j &= d\ell \cdot \big(-[j = t]\big) = -d\ell \cdot [j = t]
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -467,8 +491,10 @@ B7's):
 $$
 \begin{aligned}
 \frac{\partial a_j}{\partial z_j} &= \frac{\partial z_j}{\partial z_j} - \frac{\partial m}{\partial z_j}\Big\rvert_{m \text{ fixed}} = 1 - 0 = 1 \\
+\frac{\partial L}{\partial z_j}\Big\rvert_{\text{through } a_j} &= \frac{\partial L}{\partial a_j} \cdot \frac{\partial a_j}{\partial z_j}
+  && \text{chain rule; } z_j \text{ is used in one } a \text{ only} \\
 dz^{(1)}_j &= da_j \cdot 1 = da_j
-  && z_j \text{ is used in one } a \text{ only}
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -549,8 +575,10 @@ $$
 \begin{aligned}
 \frac{\partial m}{\partial z_j} &= [j \text{ is the largest}]
   && \text{Table 6} \\
-dz^{(2)}_j &= dm \cdot \frac{\partial m}{\partial z_j} = 0 \cdot [j \text{ is the largest}] = 0
-  && \text{chain rule, along the arrow F1; } dm = 0 \text{ (B6)}
+\frac{\partial L}{\partial z_j}\Big\rvert_{\text{through } m} &= \frac{\partial L}{\partial m} \cdot \frac{\partial m}{\partial z_j}
+  && \text{chain rule, along the arrow F1} \\
+dz^{(2)}_j &= 0 \cdot [j \text{ is the largest}] = 0
+  && \text{the same, written short}\text{; } dm = 0 \text{ (B6)}
 \end{aligned}
 $$
 

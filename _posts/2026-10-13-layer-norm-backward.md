@@ -106,12 +106,28 @@ Every step below uses the same three rules and nothing else.
 
 | rule | when | what it says |
 |---|---|---|
-| **chain rule** | $$a$$ affects $$L$$ through $$b$$ | $$da = db \cdot \partial b / \partial a$$ |
-| **shared value: sum** | $$a$$ is used in many places (all rows, or all columns of a row) | add one chain-rule term per place: $$da = \sum_k db_k \cdot \partial b_k / \partial a$$ |
+| **chain rule** | $$a$$ affects $$L$$ only through $$b$$ | $$\frac{\partial L}{\partial a} = \frac{\partial L}{\partial b} \cdot \frac{\partial b}{\partial a}$$, written short as $$da = db \cdot \partial b / \partial a$$ |
+| **shared value: sum** | $$a$$ is used in many places (all rows, or all columns of a row) | add one chain-rule term per place: $$\frac{\partial L}{\partial a} = \sum_k \frac{\partial L}{\partial b_k} \cdot \frac{\partial b_k}{\partial a}$$, written short as $$da = \sum_k db_k \cdot \partial b_k / \partial a$$ |
 | **used twice: add the parts** | $$a$$ is used by two different forward steps | each step gives one part; $$da$$ = part 1 + part 2, and $$da$$ is not finished until both are in |
 
 *Table 3. The three rules. The second and third are the same rule, the multivariable chain rule
 (add the effect of every path), seen from two sides.*
+
+
+**The chain rule, in full.** Every gradient in this note is a $$\partial L / \partial(\cdot)$$: how much
+the loss $$L$$ moves per unit that one value moves. $$da$$ is only a short name for
+$$\partial L / \partial a$$. When $$a$$ affects $$L$$ only through $$b$$, there is one road,
+$$a \to b \to \cdots \to L$$: a nudge of $$a$$ moves $$b$$ by $$\partial b / \partial a$$ per unit, and
+each unit of $$b$$ moves $$L$$ by $$\partial L / \partial b$$. So the two rates multiply:
+
+$$
+\underbrace{\frac{\partial L}{\partial a}}_{da} = \underbrace{\frac{\partial L}{\partial b}}_{db} \cdot \frac{\partial b}{\partial a}
+$$
+
+$$\partial L / \partial b$$ is already known, from the step before: the steps go backwards from the
+loss. $$\partial b / \partial a$$ is the local derivative, one forward formula differentiated. If $$a$$
+had two roads to $$L$$, there would be one such product per road, added: that is the used-twice rule.
+Each step below writes the full form first, then the short one.
 
 And one habit: **each step looks only at its direct inputs.** F5 is $$\hat{x}_i = d_i \cdot r$$. Its
 direct inputs are $$d_i$$ and $$r$$. When B4 takes the derivative with respect to $$d_i$$, it holds
@@ -138,8 +154,10 @@ $$
   && \text{derivative of a sum = sum of derivatives} \\
   &= 0 + 1 = 1
   && \gamma_i \hat{x}_i \text{ does not contain } \beta_i \text{, so it is a constant} \\
-d\beta_i &= dy_i \cdot \frac{\partial y_i}{\partial \beta_i} = dy_i \cdot 1 = dy_i
-  && \text{chain rule}
+\frac{\partial L}{\partial \beta_i} &= \frac{\partial L}{\partial y_i} \cdot \frac{\partial y_i}{\partial \beta_i}
+  && \text{chain rule: } \beta_i \text{ affects } L \text{ only through } y_i \\
+d\beta_i &= dy_i \cdot 1 = dy_i
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -165,8 +183,10 @@ $$
   &= \frac{\partial}{\partial \gamma_i}\left(\gamma_i \hat{x}_i\right) + \frac{\partial}{\partial \gamma_i}\left(\beta_i\right)
   = \hat{x}_i + 0 = \hat{x}_i
   && \hat{x}_i \text{ is a constant factor; } \beta_i \text{ a constant} \\
+\frac{\partial L}{\partial \gamma_i} &= \frac{\partial L}{\partial y_i} \cdot \frac{\partial y_i}{\partial \gamma_i}
+  && \text{chain rule: } \gamma_i \text{ affects } L \text{ only through } y_i \\
 d\gamma_i &= dy_i \cdot \hat{x}_i
-  && \text{chain rule}
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -174,7 +194,7 @@ $$
 $$\hat{x}_{t,i}$$:
 
 $$
-d\gamma_i = \sum_{t=1}^{T} dy_{t,i} \cdot \frac{\partial y_{t,i}}{\partial \gamma_i} = \sum_{t=1}^{T} dy_{t,i}\, \hat{x}_{t,i}
+\frac{\partial L}{\partial \gamma_i} = \sum_{t=1}^{T} \frac{\partial L}{\partial y_{t,i}} \cdot \frac{\partial y_{t,i}}{\partial \gamma_i} \qquad\text{written short:}\qquad d\gamma_i = \sum_{t=1}^{T} dy_{t,i}\, \hat{x}_{t,i}
 $$
 
 **The difference from B1.** In B1 the local derivative was 1 in every row, so it disappeared. Here it
@@ -192,8 +212,10 @@ $$
 \begin{aligned}
 \frac{\partial y_i}{\partial \hat{x}_i} &= \gamma_i + 0 = \gamma_i
   && \gamma_i \text{ is a constant factor} \\
+\frac{\partial L}{\partial \hat{x}_i} &= \frac{\partial L}{\partial y_i} \cdot \frac{\partial y_i}{\partial \hat{x}_i}
+  && \text{chain rule: } \hat{x}_i \text{ affects } L \text{ only through } y_i \\
 d\hat{x}_i &= dy_i\, \gamma_i
-  && \text{chain rule}
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -227,8 +249,10 @@ input $$r$$ fixed (Section 2):
 $$
 \begin{aligned}
 \frac{\partial \hat{x}_i}{\partial d_i} &= r \cdot \frac{\partial d_i}{\partial d_i} = r \cdot 1 = r \\
+\frac{\partial L}{\partial d_i}\Big\rvert_{\text{through } \hat{x}_i} &= \frac{\partial L}{\partial \hat{x}_i} \cdot \frac{\partial \hat{x}_i}{\partial d_i}
+  && \text{chain rule, along the arrow F5} \\
 dd_i^{(1)} &= d\hat{x}_i \cdot r
-  && \text{chain rule, along the arrow F5}
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -312,8 +336,10 @@ $$
   && \text{chain rule} \\
   &= -\tfrac{1}{2}\, r^3
   && r^3 = \left((v + \epsilon)^{-1/2}\right)^3 = (v + \epsilon)^{-3/2} \\
-dv &= dr \cdot \frac{\partial r}{\partial v} = -\tfrac{1}{2}\, r^3\, dr
-  && v \text{ is used once, in } r
+\frac{\partial L}{\partial v} &= \frac{\partial L}{\partial r} \cdot \frac{\partial r}{\partial v}
+  && \text{chain rule: } v \text{ is used once, in } r \\
+dv &= dr \cdot \left(-\tfrac{1}{2}\, r^3\right) = -\tfrac{1}{2}\, r^3\, dr
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -360,8 +386,10 @@ $$
   && \text{every other } d_j^2 \text{ is a constant} \\
   &= \frac{1}{n} \cdot 2\, d_i = \frac{2}{n}\, d_i
   && \text{power rule, } k = 2 \\
+\frac{\partial L}{\partial d_i}\Big\rvert_{\text{through } v} &= \frac{\partial L}{\partial v} \cdot \frac{\partial v}{\partial d_i}
+  && \text{chain rule, along the arrow F3} \\
 dd_i^{(2)} &= dv \cdot \frac{2}{n}\, d_i
-  && \text{chain rule, along the arrow F3}
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -410,8 +438,10 @@ $$x_i \to \mu \to d$$ is B8 and B9's):
 $$
 \begin{aligned}
 \frac{\partial d_i}{\partial x_i} &= \frac{\partial x_i}{\partial x_i} - \frac{\partial \mu}{\partial x_i}\Big\rvert_{\mu \text{ fixed}} = 1 - 0 = 1 \\
+\frac{\partial L}{\partial x_i}\Big\rvert_{\text{through } d_i} &= \frac{\partial L}{\partial d_i} \cdot \frac{\partial d_i}{\partial x_i}
+  && \text{chain rule; } x_i \text{ is used in one } d \text{ only} \\
 dx_i^{(1)} &= dd_i \cdot 1 = dd_i
-  && x_i \text{ is used in one } d \text{ only}
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -427,7 +457,12 @@ There is one $$\mu$$ for the whole row, used in every column:
 $$d_1 = x_1 - \mu,\ \ldots,\ d_n = x_n - \mu$$. That is $$n$$ paths:
 
 $$
-d\mu = \sum_{i=1}^{n} dd_i \cdot \frac{\partial d_i}{\partial \mu} = \sum_{i=1}^{n} dd_i \cdot (-1) = -\sum_{i=1}^{n} dd_i
+\begin{aligned}
+\frac{\partial L}{\partial \mu} &= \sum_{i=1}^{n} \frac{\partial L}{\partial d_i} \cdot \frac{\partial d_i}{\partial \mu}
+  && \text{chain rule, one term per road} \\
+d\mu &= \sum_{i=1}^{n} dd_i \cdot (-1) = -\sum_{i=1}^{n} dd_i
+  && \text{the same, written short}
+\end{aligned}
 $$
 
 This needs the **complete** $$dd_i$$, both parts. That is why B6b had to come first.
@@ -459,8 +494,10 @@ $$
 \frac{\partial \mu}{\partial x_i}
   &= \frac{1}{n} \cdot \frac{\partial}{\partial x_i}\left(x_1 + \cdots + x_i + \cdots + x_n\right)
    = \frac{1}{n}\left(0 + \cdots + 1 + \cdots + 0\right) = \frac{1}{n} \\
+\frac{\partial L}{\partial x_i}\Big\rvert_{\text{through } \mu} &= \frac{\partial L}{\partial \mu} \cdot \frac{\partial \mu}{\partial x_i}
+  && \text{chain rule, along the arrow F1} \\
 dx_i^{(2)} &= d\mu \cdot \frac{1}{n} = \frac{d\mu}{n}
-  && \text{chain rule, along the arrow F1}
+  && \text{the same, written short}
 \end{aligned}
 $$
 

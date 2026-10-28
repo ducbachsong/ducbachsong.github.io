@@ -1,8 +1,8 @@
 ---
 title: "GELU backward, broken down and rebuilt: seven chain-rule steps and one slope"
 date: 2026-10-21
-modified: 2026-10-21
-version: 1
+modified: 2026-10-28
+version: 2
 permalink: /posts/gelu-backward/
 excerpt: "The backward pass of GELU is usually given as one line: dx = dy · gelu'(x), with a slope of two terms and a tanh in each. This note takes the forward apart into five small steps, from x to a gate between 0 and 1 and back to y = x times the gate, and the backward into seven, each derived with nothing more than the chain rule, and works four numbers through all of them. x is used twice, so its gradient has two parts: the gate as it is, and how fast the gate opens. Then it puts the steps back together into the one slope a GPU kernel runs. Two checks follow from the formula, and every number is checked against PyTorch."
 tags:
@@ -129,12 +129,28 @@ Every step below uses the same three rules as the LayerNorm and linear notes [2,
 
 | rule | when | what it says |
 |---|---|---|
-| **chain rule** | $$a$$ affects $$L$$ through $$b$$ | $$da = db \cdot \partial b / \partial a$$ |
-| **shared value: sum** | $$a$$ is used in many places (all rows, or all outputs of a row) | add one chain-rule term per place |
+| **chain rule** | $$a$$ affects $$L$$ only through $$b$$ | $$\frac{\partial L}{\partial a} = \frac{\partial L}{\partial b} \cdot \frac{\partial b}{\partial a}$$, written short as $$da = db \cdot \partial b / \partial a$$ |
+| **shared value: sum** | $$a$$ is used in many places (all rows, or all outputs of a row) | add one chain-rule term per place: $$\frac{\partial L}{\partial a} = \sum_k \frac{\partial L}{\partial b_k} \cdot \frac{\partial b_k}{\partial a}$$ |
 | **used twice: add the parts** | $$a$$ is used by two different forward steps | each step gives one part; $$da$$ = part 1 + part 2 |
 
 *Table 3. The three rules. GELU needs the first and the third. The second has nothing to do: no value
 is shared with another value, so no gradient is a sum over rows or columns.*
+
+
+**The chain rule, in full.** Every gradient in this note is a $$\partial L / \partial(\cdot)$$: how much
+the loss $$L$$ moves per unit that one value moves. $$da$$ is only a short name for
+$$\partial L / \partial a$$. When $$a$$ affects $$L$$ only through $$b$$, there is one road,
+$$a \to b \to \cdots \to L$$: a nudge of $$a$$ moves $$b$$ by $$\partial b / \partial a$$ per unit, and
+each unit of $$b$$ moves $$L$$ by $$\partial L / \partial b$$. So the two rates multiply:
+
+$$
+\underbrace{\frac{\partial L}{\partial a}}_{da} = \underbrace{\frac{\partial L}{\partial b}}_{db} \cdot \frac{\partial b}{\partial a}
+$$
+
+$$\partial L / \partial b$$ is already known, from the step before: the steps go backwards from the
+loss. $$\partial b / \partial a$$ is the local derivative, one forward formula differentiated. If $$a$$
+had two roads to $$L$$, there would be one such product per road, added: that is the used-twice rule.
+Each step below writes the full form first, then the short one.
 
 And one habit: **each step looks at one input and holds the others fixed.** F5, $$y = x \cdot p$$, has
 two inputs; B1 takes the derivative with respect to $$p$$ and holds $$x$$ fixed, and B2 the other way
@@ -172,7 +188,14 @@ nothing added across them.
 From F5, $$y = x \cdot p$$, with respect to $$p$$, holding $$x$$ fixed:
 
 $$
-\frac{\partial y}{\partial p} = x \qquad\qquad dp = dy \cdot x
+\begin{aligned}
+\frac{\partial y}{\partial p} &= x
+  && x \text{ is held fixed: a constant factor} \\
+\frac{\partial L}{\partial p} &= \frac{\partial L}{\partial y} \cdot \frac{\partial y}{\partial p}
+  && \text{chain rule: } p \text{ affects } L \text{ only through } y \\
+dp &= dy \cdot x
+  && \text{the same, written short}
+\end{aligned}
 $$
 
 **Example.** $$dp = [1,\ -1,\ 2,\ -2]$$: $$x$$ itself, since $$dy = 1$$. Opening the gate a little helps
@@ -183,7 +206,14 @@ $$y$$ in proportion to how much $$x$$ there is to let through, and with $$x$$'s 
 From F5 again, with respect to $$x$$, holding $$p$$ fixed:
 
 $$
-\frac{\partial y}{\partial x} = p \qquad\qquad dx^{(1)} = dy \cdot p
+\begin{aligned}
+\frac{\partial y}{\partial x} &= p
+  && p \text{ is held fixed: a constant factor} \\
+\frac{\partial L}{\partial x}\Big\rvert_{\text{through F5}} &= \frac{\partial L}{\partial y} \cdot \frac{\partial y}{\partial x}
+  && \text{chain rule, along the arrow F5} \\
+dx^{(1)} &= dy \cdot p
+  && \text{the same, written short}
+\end{aligned}
 $$
 
 **Example.** $$dx^{(1)} = [0.8411920,\ 0.1588080,\ 0.9772988,\ 0.0227012]$$: the gate.
@@ -197,7 +227,14 @@ GELU's gate moves with $$x$$, and B3 to B6 follow that path.
 From F4, $$p = \tfrac{1}{2} + \tfrac{1}{2} h$$:
 
 $$
-\frac{\partial p}{\partial h} = \tfrac{1}{2} \qquad\qquad dh = dp \cdot \tfrac{1}{2}
+\begin{aligned}
+\frac{\partial p}{\partial h} &= 0 + \tfrac{1}{2} = \tfrac{1}{2}
+  && \tfrac{1}{2} \text{ is a constant} \\
+\frac{\partial L}{\partial h} &= \frac{\partial L}{\partial p} \cdot \frac{\partial p}{\partial h}
+  && \text{chain rule: } h \text{ affects } L \text{ only through } p \\
+dh &= dp \cdot \tfrac{1}{2}
+  && \text{the same, written short}
+\end{aligned}
 $$
 
 **Example.** $$dh = [0.5,\ -0.5,\ 1,\ -1]$$.
@@ -207,7 +244,14 @@ $$
 From F3, $$h = \tanh s$$, with Table 4:
 
 $$
-\frac{\partial h}{\partial s} = 1 - h^2 \qquad\qquad ds = dh \cdot (1 - h^2)
+\begin{aligned}
+\frac{\partial h}{\partial s} &= 1 - h^2
+  && \text{Table 4} \\
+\frac{\partial L}{\partial s} &= \frac{\partial L}{\partial h} \cdot \frac{\partial h}{\partial s}
+  && \text{chain rule: } s \text{ affects } L \text{ only through } h \\
+ds &= dh \cdot (1 - h^2)
+  && \text{the same, written short}
+\end{aligned}
 $$
 
 **Example.**
@@ -225,7 +269,14 @@ gate is nearly fully open or shut and barely moves, so this path carries little.
 From F2, $$s = \beta u$$:
 
 $$
-\frac{\partial s}{\partial u} = \beta \qquad\qquad du = ds \cdot \beta
+\begin{aligned}
+\frac{\partial s}{\partial u} &= \beta
+  && \beta \text{ is a constant factor} \\
+\frac{\partial L}{\partial u} &= \frac{\partial L}{\partial s} \cdot \frac{\partial s}{\partial u}
+  && \text{chain rule: } u \text{ affects } L \text{ only through } s \\
+du &= ds \cdot \beta
+  && \text{the same, written short}
+\end{aligned}
 $$
 
 **Example.** $$du = [0.2131756,\ -0.2131756,\ 0.0708069,\ -0.0708069]$$.
@@ -235,7 +286,14 @@ $$
 From F1, $$u = x + \kappa x^3$$, with the power rule:
 
 $$
-\frac{\partial u}{\partial x} = 1 + 3\kappa x^2 \qquad\qquad dx^{(2)} = du \cdot (1 + 3\kappa x^2)
+\begin{aligned}
+\frac{\partial u}{\partial x} &= 1 + 3\kappa x^2
+  && \text{power rule, on } x \text{ and on } \kappa x^3 \\
+\frac{\partial L}{\partial x}\Big\rvert_{\text{through F1}} &= \frac{\partial L}{\partial u} \cdot \frac{\partial u}{\partial x}
+  && \text{chain rule, along the arrow F1} \\
+dx^{(2)} &= du \cdot (1 + 3\kappa x^2)
+  && \text{the same, written short}
+\end{aligned}
 $$
 
 **Example.**

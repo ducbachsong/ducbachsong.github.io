@@ -1,8 +1,8 @@
 ---
 title: "Linear backward, broken down and rebuilt: three chain-rule steps and three matrix products"
 date: 2026-10-14
-modified: 2026-10-14
-version: 2
+modified: 2026-10-28
+version: 3
 permalink: /posts/linear-backward/
 excerpt: "The backward pass of a linear layer is usually given as three lines: dx = dy · W, dW = dyᵀ · x, db = the column sums of dy. This note takes it apart into three small steps, one for each input of the forward formula, each derived with nothing more than the chain rule, and works two rows of 4 numbers through all of them. The layer has the shape of LayerNorm's last step, with one difference: the gradient of the input is a sum. Then it puts the steps back together, in two moves, into the three matrix products a GPU kernel runs, and shows where each ᵀ comes from: from which index a sum runs over. Two checks follow from the formulas, and every number is checked against PyTorch."
 tags:
@@ -133,12 +133,28 @@ Every step below uses the same three rules as the LayerNorm note [2], and nothin
 
 | rule | when | what it says |
 |---|---|---|
-| **chain rule** | $$a$$ affects $$L$$ through $$b$$ | $$da = db \cdot \partial b / \partial a$$ |
-| **shared value: sum** | $$a$$ is used in many places (all rows, or all outputs of a row) | add one chain-rule term per place: $$da = \sum_k db_k \cdot \partial b_k / \partial a$$ |
+| **chain rule** | $$a$$ affects $$L$$ only through $$b$$ | $$\frac{\partial L}{\partial a} = \frac{\partial L}{\partial b} \cdot \frac{\partial b}{\partial a}$$, written short as $$da = db \cdot \partial b / \partial a$$ |
+| **shared value: sum** | $$a$$ is used in many places (all rows, or all outputs of a row) | add one chain-rule term per place: $$\frac{\partial L}{\partial a} = \sum_k \frac{\partial L}{\partial b_k} \cdot \frac{\partial b_k}{\partial a}$$, written short as $$da = \sum_k db_k \cdot \partial b_k / \partial a$$ |
 | **used twice: add the parts** | $$a$$ is used by two different forward steps | each step gives one part; $$da$$ = part 1 + part 2 |
 
 *Table 4. The three rules. A linear layer needs only the first two for its gradients. The third comes
 back in Section 7, for one choice the kernel makes.*
+
+
+**The chain rule, in full.** Every gradient in this note is a $$\partial L / \partial(\cdot)$$: how much
+the loss $$L$$ moves per unit that one value moves. $$da$$ is only a short name for
+$$\partial L / \partial a$$. When $$a$$ affects $$L$$ only through $$b$$, there is one road,
+$$a \to b \to \cdots \to L$$: a nudge of $$a$$ moves $$b$$ by $$\partial b / \partial a$$ per unit, and
+each unit of $$b$$ moves $$L$$ by $$\partial L / \partial b$$. So the two rates multiply:
+
+$$
+\underbrace{\frac{\partial L}{\partial a}}_{da} = \underbrace{\frac{\partial L}{\partial b}}_{db} \cdot \frac{\partial b}{\partial a}
+$$
+
+$$\partial L / \partial b$$ is already known, from the step before: the steps go backwards from the
+loss. $$\partial b / \partial a$$ is the local derivative, one forward formula differentiated. If $$a$$
+had two roads to $$L$$, there would be one such product per road, added: that is the used-twice rule.
+Each step below writes the full form first, then the short one.
 
 And one habit: **each step looks at one input and holds the others fixed.** B2 takes the derivative
 with respect to $$W_{j,i}$$ and holds $$x$$ and $$b$$ fixed; B3 takes it with respect to $$x_i$$ and
@@ -162,8 +178,10 @@ $$
   && \text{derivative of a sum = sum of derivatives} \\
   &= 0 + 1 = 1
   && \text{the dot product does not contain } b_j \text{, so it is a constant} \\
-db_j &= dy_j \cdot \frac{\partial y_j}{\partial b_j} = dy_j \cdot 1 = dy_j
-  && \text{chain rule}
+\frac{\partial L}{\partial b_j} &= \frac{\partial L}{\partial y_j} \cdot \frac{\partial y_j}{\partial b_j}
+  && \text{chain rule: } b_j \text{ affects } L \text{ only through } y_j \\
+db_j &= dy_j \cdot 1 = dy_j
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -198,8 +216,10 @@ $$
   &= \frac{\partial}{\partial W_{j,i}}\left(x_1 W_{j,1} + \cdots + x_i W_{j,i} + \cdots + x_{n_\text{in}} W_{j,n_\text{in}}\right) + \frac{\partial b_j}{\partial W_{j,i}} \\
   &= \left(0 + \cdots + x_i + \cdots + 0\right) + 0 = x_i
   && \text{every other term is a constant; } x_i \text{ is a constant factor} \\
+\frac{\partial L}{\partial W_{j,i}} &= \frac{\partial L}{\partial y_j} \cdot \frac{\partial y_j}{\partial W_{j,i}}
+  && \text{chain rule: } W_{j,i} \text{ affects } L \text{ only through } y_j \\
 dW_{j,i} &= dy_j \cdot x_i
-  && \text{chain rule}
+  && \text{the same, written short}
 \end{aligned}
 $$
 
@@ -210,7 +230,7 @@ it. Output $$k$$ uses $$W_{k,i}$$, a different weight.
 $$T$$ paths, each with its **own** $$x_{t,i}$$:
 
 $$
-dW_{j,i} = \sum_{t=1}^{T} dy_{t,j} \cdot \frac{\partial y_{t,j}}{\partial W_{j,i}} = \sum_{t=1}^{T} dy_{t,j}\, x_{t,i}
+\frac{\partial L}{\partial W_{j,i}} = \sum_{t=1}^{T} \frac{\partial L}{\partial y_{t,j}} \cdot \frac{\partial y_{t,j}}{\partial W_{j,i}} \qquad\text{written short:}\qquad dW_{j,i} = \sum_{t=1}^{T} dy_{t,j}\, x_{t,i}
 $$
 
 **The difference from B1.** In B1 the local derivative was 1 in every row, so it disappeared. Here it
