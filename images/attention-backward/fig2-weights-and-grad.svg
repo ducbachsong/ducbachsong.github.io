@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 860 384" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+  </defs>
+  <rect width="860" height="384" fill="#ffffff"/>
+  <text x="20" y="26" text-anchor="start" font-size="15" fill="#212529" font-weight="600">The example's weights, and the gradient of the scores</text>
+  <text x="20" y="44" text-anchor="start" font-size="13" fill="#495057">Row t is token t, column j the token it looks at. The columns after the token (grey) are masked: weight 0, gradient 0.</text>
+  <text x="225" y="84" text-anchor="middle" font-size="13" fill="#212529" font-weight="600">weights a: each row adds up to 1</text>
+  <text x="135" y="108" text-anchor="middle" font-size="11" fill="#868e96">token 0</text>
+  <text x="225" y="108" text-anchor="middle" font-size="11" fill="#868e96">token 1</text>
+  <text x="315" y="108" text-anchor="middle" font-size="11" fill="#868e96">token 2</text>
+  <text x="80" y="145" text-anchor="end" font-size="11" fill="#868e96">token 0</text>
+  <rect x="90" y="115" width="86" height="64" fill="#1971c2" fill-opacity="0.60" stroke="#e9ecef"/>
+  <text x="133" y="152" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">1</text>
+  <rect x="180" y="115" width="86" height="64" fill="#f8f9fa" stroke="#e9ecef"/>
+  <text x="223" y="152" text-anchor="middle" font-size="11" fill="#adb5bd">masked</text>
+  <rect x="270" y="115" width="86" height="64" fill="#f8f9fa" stroke="#e9ecef"/>
+  <text x="313" y="152" text-anchor="middle" font-size="11" fill="#adb5bd">masked</text>
+  <text x="80" y="215" text-anchor="end" font-size="11" fill="#868e96">token 1</text>
+  <rect x="90" y="185" width="86" height="64" fill="#1971c2" fill-opacity="0.20" stroke="#e9ecef"/>
+  <text x="133" y="222" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">0.2689414</text>
+  <rect x="180" y="185" width="86" height="64" fill="#1971c2" fill-opacity="0.45" stroke="#e9ecef"/>
+  <text x="223" y="222" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">0.7310586</text>
+  <rect x="270" y="185" width="86" height="64" fill="#f8f9fa" stroke="#e9ecef"/>
+  <text x="313" y="222" text-anchor="middle" font-size="11" fill="#adb5bd">masked</text>
+  <text x="80" y="285" text-anchor="end" font-size="11" fill="#868e96">token 2</text>
+  <rect x="90" y="255" width="86" height="64" fill="#1971c2" fill-opacity="0.17" stroke="#e9ecef"/>
+  <text x="133" y="292" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">0.2119416</text>
+  <rect x="180" y="255" width="86" height="64" fill="#1971c2" fill-opacity="0.17" stroke="#e9ecef"/>
+  <text x="223" y="292" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">0.2119416</text>
+  <rect x="270" y="255" width="86" height="64" fill="#1971c2" fill-opacity="0.37" stroke="#e9ecef"/>
+  <text x="313" y="292" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">0.5761169</text>
+  <text x="635" y="84" text-anchor="middle" font-size="13" fill="#212529" font-weight="600">ds = a (da − row_dot): each row adds up to 0</text>
+  <text x="545" y="108" text-anchor="middle" font-size="11" fill="#868e96">token 0</text>
+  <text x="635" y="108" text-anchor="middle" font-size="11" fill="#868e96">token 1</text>
+  <text x="725" y="108" text-anchor="middle" font-size="11" fill="#868e96">token 2</text>
+  <text x="490" y="145" text-anchor="end" font-size="11" fill="#868e96">token 0</text>
+  <rect x="500" y="115" width="86" height="64" fill="#1971c2" fill-opacity="0.05" stroke="#e9ecef"/>
+  <text x="543" y="152" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">0</text>
+  <rect x="590" y="115" width="86" height="64" fill="#f8f9fa" stroke="#e9ecef"/>
+  <text x="633" y="152" text-anchor="middle" font-size="11" fill="#adb5bd">masked</text>
+  <rect x="680" y="115" width="86" height="64" fill="#f8f9fa" stroke="#e9ecef"/>
+  <text x="723" y="152" text-anchor="middle" font-size="11" fill="#adb5bd">masked</text>
+  <text x="490" y="215" text-anchor="end" font-size="11" fill="#868e96">token 1</text>
+  <rect x="500" y="185" width="86" height="64" fill="#1971c2" fill-opacity="0.48" stroke="#e9ecef"/>
+  <text x="543" y="222" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">0.1966119</text>
+  <rect x="590" y="185" width="86" height="64" fill="#e8590c" fill-opacity="0.48" stroke="#e9ecef"/>
+  <text x="633" y="222" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">−0.1966119</text>
+  <rect x="680" y="185" width="86" height="64" fill="#f8f9fa" stroke="#e9ecef"/>
+  <text x="723" y="222" text-anchor="middle" font-size="11" fill="#adb5bd">masked</text>
+  <text x="490" y="285" text-anchor="end" font-size="11" fill="#868e96">token 2</text>
+  <rect x="500" y="255" width="86" height="64" fill="#1971c2" fill-opacity="0.42" stroke="#e9ecef"/>
+  <text x="543" y="292" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">0.1670223</text>
+  <rect x="590" y="255" width="86" height="64" fill="#e8590c" fill-opacity="0.15" stroke="#e9ecef"/>
+  <text x="633" y="292" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">−0.0449192</text>
+  <rect x="680" y="255" width="86" height="64" fill="#e8590c" fill-opacity="0.32" stroke="#e9ecef"/>
+  <text x="723" y="292" text-anchor="middle" font-size="12" fill="#212529" font-weight="600">−0.1221031</text>
+  <text x="20" y="352" text-anchor="start" font-size="13" fill="#495057">Left: token 2 weights itself most, its score 2 against 1 and 1. Right: the loss wants output column 0 up, which is the weight on token 0,</text>
+  <text x="20" y="369" text-anchor="start" font-size="13" fill="#495057">so ds pushes each row's score of token 0 up and the others down. Token 0 sees only itself: its one weight is always 1, and its ds is 0.</text>
+</svg>
