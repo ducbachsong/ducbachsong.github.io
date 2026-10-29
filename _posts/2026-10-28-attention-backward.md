@@ -263,21 +263,52 @@ out again, and compare.
 
 ### 3.1 B1: the head outputs, $$dy$$
 
-**One head.** F6 only copies: output row $$t$$, columns $$h \cdot d$$ to $$h \cdot d + d - 1$$, is
-$$y_t$$ of head $$h$$. A copy has slope 1 from each value to its copy and 0 to every other place, so by
-the chain rule each value of $$y$$ gets the gradient of the place it was copied to:
+**One head: head 0.** F6 only copies. Head 0's outputs come first in the output row: $$y_t[c]$$ is
+copied to output row $$t$$, column $$c$$, for $$c = 0$$ to 63. So $$\text{output}_t[c] = y_t[c]$$, and
+$$y_t[c]$$ is used in that one place only. By the chain rule:
 
 $$
 \begin{aligned}
-\frac{\partial L}{\partial y_t[c]} &= \frac{\partial L}{\partial \text{output}_t[h d + c]} \cdot \frac{\partial\, \text{output}_t[h d + c]}{\partial y_t[c]}
+\frac{\partial L}{\partial y_t[c]} &= \frac{\partial L}{\partial \text{output}_t[c]} \cdot \frac{\partial\, \text{output}_t[c]}{\partial y_t[c]}
   && \text{chain rule: } y_t[c] \text{ is used in one place only} \\
-dy_t[c] &= d\text{output}_t[h d + c] \cdot 1
+&= \frac{\partial L}{\partial \text{output}_t[c]} \cdot 1
+  && \text{output}_t[c] = y_t[c] \text{: slope 1} \\
+dy_t[c] &= d\text{output}_t[c]
   && \text{the same, written short}
 \end{aligned}
 $$
 
-**The whole batch.** Every value of every head of every sequence is copied to one place: no sums. The
-gradient of the layer after, `{4, 1024, 768}`, is cut into heads, `{4, 12, 1024, 64}`. Interactive 1, read from the output row up, shows where each value of the gradient goes.
+A copy has slope 1 from a value to its copy and 0 to every other place, so the gradient comes back
+unchanged: head 0's $$dy_t$$ is columns 0 to 63 of $$d\text{output}_t$$.
+
+**Every head.** Write $$y^{(h)}$$ for head $$h$$'s $$y$$. Head $$h$$'s columns come after the $$h$$ heads
+before it, $$h \cdot d$$ columns, so F6 copies $$y^{(h)}_t[c]$$ to column $$h \cdot d + c$$:
+
+| head $$h$$ | its columns of output row $$t$$ | $$y^{(h)}_t[c]$$ goes to column |
+|---|---|---|
+| 0 | 0 to 63 | $$c$$ |
+| 1 | 64 to 127 | $$64 + c$$ |
+| 2 | 128 to 191 | $$128 + c$$ |
+| 11 | 704 to 767 | $$704 + c$$ |
+
+*Table 8. Where F6 puts each head. Head 2's $$y_t[5]$$, for example, is output column $$128 + 5 = 133$$.*
+
+The same chain rule as for head 0, with column $$h d + c$$ in place of $$c$$:
+
+$$
+\begin{aligned}
+\frac{\partial L}{\partial y^{(h)}_t[c]} &= \frac{\partial L}{\partial \text{output}_t[h d + c]} \cdot \frac{\partial\, \text{output}_t[h d + c]}{\partial y^{(h)}_t[c]}
+  && \text{chain rule: one place only} \\
+dy^{(h)}_t[c] &= d\text{output}_t[h d + c] \cdot 1
+  && h = 0 \text{ gives head 0's line}
+\end{aligned}
+$$
+
+**The whole batch.** Each of the 4 sequences has its own output rows, and nothing crosses from one
+sequence to another, so sequence $$b$$ only adds an index: $$dy^{(b, h)}_t[c] = d\text{output}_{b, t}[h d + c]$$.
+Every value of every head of every sequence is copied to one place: no sums. The gradient of the layer
+after, `{4, 1024, 768}`, is cut into heads, `{4, 12, 1024, 64}`. Interactive 1, read from the output row
+up, shows where each value of the gradient goes.
 
 **Example.** One head, so $$dy$$ is the given $$[1,\ 0,\ 0,\ 0]$$ for each token.
 
@@ -316,7 +347,7 @@ for $$j = 0$$ and 0 otherwise:
 | $$da_{1j}$$ | 1 | 0 | |
 | $$da_{2j}$$ | 1 | 0 | 0 |
 
-*Table 8. B2 in the example: the loss wants every token's weight on token 0 up.*
+*Table 9. B2 in the example: the loss wants every token's weight on token 0 up.*
 
 **What it means.** Raise $$a_{20}$$ by 0.01, holding everything else: $$y_2$$ moves by
 $$0.01\, v_0 = [0.01, 0, 0, 0]$$, and $$L$$, the sum of column 0, by 0.01: $$da_{20} = 1$$. Raise
@@ -359,7 +390,7 @@ the same head and sequence, never across heads.
 | $$dv_1$$ | $$0.7310586\, dy_1 + 0.2119416\, dy_2$$ | 0.9430001 0 0 0 |
 | $$dv_2$$ | $$0.5761169\, dy_2$$ | 0.5761169 0 0 0 |
 
-*Table 9. B3 in the example. Each value's gradient is the weight every later token gives it, times that
+*Table 10. B3 in the example. Each value's gradient is the weight every later token gives it, times that
 token's $$dy$$.*
 
 **What it means.** Raise $$v_0[0]$$ by 0.01: every token's output column 0 moves by its weight on token 0
@@ -367,7 +398,7 @@ times 0.01, and $$L$$ by $$0.01 \times (1 + 0.2689414 + 0.2119416) = 0.0148088$$
 
 <div class="aw" data-widget="B3">This picture needs JavaScript.</div>
 
-*Interactive 6. B3. $$dv_j$$ mixes the rows of $$dY$$ of every token that sees token $$j$$, weighted by **column** $$j$$ of $$A$$: a column, so $$A^\top$$. Token 0 is seen by every token, so its column is the longest; the last token is seen only by itself. With 8 tokens, $$dv_0$$ has 5 more terms than Table 9, because tokens 3 to 7 look back at token 0 too.*
+*Interactive 6. B3. $$dv_j$$ mixes the rows of $$dY$$ of every token that sees token $$j$$, weighted by **column** $$j$$ of $$A$$: a column, so $$A^\top$$. Token 0 is seen by every token, so its column is the longest; the last token is seen only by itself. With 8 tokens, $$dv_0$$ has 5 more terms than Table 10, because tokens 3 to 7 look back at token 0 too.*
 
 ### 3.4 B4: the softmax's sum, $$dS_t$$
 
@@ -400,7 +431,7 @@ $$
 | 1 | $$1 \times 0.2689414 + 0 = 0.2689414$$ | $$-0.2689414 / 1.3678794 = -0.1966119$$ |
 | 2 | $$1 \times 0.2119416 + 0 + 0 = 0.2119416$$ | $$-0.2119416 / 1.7357589 = -0.1221031$$ |
 
-*Table 10. B4 in the example.*
+*Table 11. B4 in the example.*
 
 **What it means.** Raise $$S_1$$ by 0.01, holding $$e_{10}$$ and $$e_{11}$$: each weight of row 1 shrinks,
 $$a_{10} = 0.3678794 / 1.3778794 = 0.2669895$$, down 0.0019519, and $$L$$ with it, since it counts
@@ -441,7 +472,7 @@ $$
 | row 1 | $$1/1.3678794 - 0.1966119 = 0.5344466$$ | $$0 - 0.1966119 = -0.1966119$$ | |
 | row 2 | $$1/1.7357589 - 0.1221031 = 0.4540138$$ | $$-0.1221031$$ | $$-0.1221031$$ |
 
-*Table 11. B5 in the example. Road 1 is $$da / S$$; road 2, $$dS_t$$, is the same for every column of the
+*Table 12. B5 in the example. Road 1 is $$da / S$$; road 2, $$dS_t$$, is the same for every column of the
 row.*
 
 **What it means.** Raise $$e_{10}$$ by 0.01 and let only road 1 see it, $$S_1$$ held: $$a_{10}$$ goes up by
@@ -477,7 +508,7 @@ for its own $$m$$ [5].
 | row 1 | $$0.5344466 \times 0.3678794 = 0.1966119$$ | $$-0.1966119 \times 1 = -0.1966119$$ | |
 | row 2 | $$0.4540138 \times 0.3678794 = 0.1670223$$ | $$-0.1221031 \times 0.3678794 = -0.0449192$$ | $$-0.1221031 \times 1 = -0.1221031$$ |
 
-*Table 12. B6 in the example: each row adds up to 0. Token 0's one score gets 0: its only weight is
+*Table 13. B6 in the example: each row adds up to 0. Token 0's one score gets 0: its only weight is
 always 1, whatever its score.*
 
 **What it means.** Raise each score by 0.01 in turn, and work the weights and $$L$$ out again:
@@ -488,7 +519,7 @@ always 1, whatever its score.*
 | $$s_{21}$$ | −0.0004492 | −0.0004505 |
 | $$s_{22}$$ | −0.0012210 | −0.0012201 |
 
-*Table 13. Raising token 2's score of token 0 would lift its weight on token 0, which the loss wants;
+*Table 14. Raising token 2's score of token 0 would lift its weight on token 0, which the loss wants;
 raising its score of itself takes weight away from token 0.*
 
 ![The example's weights and the gradient of the scores](/images/attention-backward/fig2-weights-and-grad.svg)
@@ -526,7 +557,7 @@ $$
 | $$dq_1$$ | $$\tfrac{1}{2}\,(0.1966119\, k_0 - 0.1966119\, k_1)$$ | 0.0983060 −0.0983060 0 0 |
 | $$dq_2$$ | $$\tfrac{1}{2}\,(0.1670223\, k_0 - 0.0449192\, k_1 - 0.1221031\, k_2)$$ | 0.0224596 −0.0835112 0 0 |
 
-*Table 14. B7 in the example. Token 1's query should turn toward $$k_0 = [1, 0, 0, 0]$$ and away from
+*Table 15. B7 in the example. Token 1's query should turn toward $$k_0 = [1, 0, 0, 0]$$ and away from
 $$k_1 = [0, 1, 0, 0]$$, to score token 0 higher.*
 
 **What it means.** Raise $$q_2[0]$$ by 0.01: token 2's scores of tokens 0 and 2, whose keys have a 1 in
@@ -566,7 +597,7 @@ $$
 | $$dk_1$$ | $$\tfrac{1}{2}\,(-0.1966119\, q_1 - 0.0449192\, q_2)$$ | −0.0449192 −0.2415312 0 0 |
 | $$dk_2$$ | $$\tfrac{1}{2}\,(-0.1221031\, q_2)$$ | −0.1221031 −0.1221031 0 0 |
 
-*Table 15. B8 in the example. Token 0's key should turn toward the queries that look at it.*
+*Table 16. B8 in the example. Token 0's key should turn toward the queries that look at it.*
 
 **What it means.** Raise $$k_0[0]$$ by 0.01: $$L$$ goes up by 0.0016750, about $$0.01 \times 0.1670223$$.
 Raise $$k_1[1]$$ by 0.01: $$L$$ goes down by 0.0024121, about $$0.01 \times 0.2415312$$.
@@ -599,7 +630,7 @@ $$dq_t \,\vert\, dk_t \,\vert\, dv_t$$: row 0 is $$0\ 0\ 0\ 0 \,\vert\, 0.167022
 | B8 | F2 | keys | $$dk_j = \frac{1}{\sqrt{d}} \sum_{t \ge j} ds_{tj}\, q_t$$ | tokens that see $$j$$ |
 | B9 | F1 | qkv | $$dq, dk, dv$$ back in their places | — |
 
-*Table 16. The backward pass, broken down.*
+*Table 17. The backward pass, broken down.*
 
 Side by side with the earlier notes:
 
@@ -611,7 +642,7 @@ Side by side with the earlier notes:
 | summed over later tokens | — | — | — | $$dv$$, $$dk$$ |
 | a value used twice | $$x$$, $$d$$ | none | $$a_t$$, $$z$$ | $$e$$ |
 
-*Table 17. Attention is the only layer where tokens mix: $$k_j$$ and $$v_j$$ get gradients from every
+*Table 18. Attention is the only layer where tokens mix: $$k_j$$ and $$v_j$$ get gradients from every
 token after $$j$$.*
 
 ## 4. Rebuilding: C1 and C2
@@ -650,7 +681,7 @@ $$S$$, $$e$$ and $$de$$ never exist.
 
 Write each head's rows as matrices: $$Q$$, $$K$$, $$V$$, $$Y$$ are $$\{T, d\}$$, one row per token; $$S$$
 and $$A$$ are $$\{T, T\}$$, row $$t$$ column $$j$$, with 0 above the diagonal (F3). Then each sum of
-Table 16 is a matrix product, read as in the linear note [3]: **a sum is a product when the summed index
+Table 17 is a matrix product, read as in the linear note [3]: **a sum is a product when the summed index
 is the second index of the left factor and the first of the right**, and a factor that has it the other
 way is read turned round, $$\top$$:
 
@@ -663,7 +694,7 @@ way is read turned round, $$\top$$:
 | B7 | $$\sum_j ds_{tj}\, k_j[c]$$ | $$j$$ | 2nd in $$dS$$, 1st in $$K$$ | $$dQ = \tfrac{1}{\sqrt{d}}\, dS\, K$$ |
 | B8 | $$\sum_t ds_{tj}\, q_t[c]$$ | $$t$$ | 1st in $$dS$$, so $$dS^\top$$; 1st in $$Q$$ | $$dK = \tfrac{1}{\sqrt{d}}\, dS^\top Q$$ |
 
-*Table 18. The two forward products and the four backward ones. The sums "over $$j \le t$$" and "over
+*Table 19. The two forward products and the four backward ones. The sums "over $$j \le t$$" and "over
 $$t \ge j$$" need nothing special: $$A$$ and $$dS$$ are 0 above the diagonal, so the full products add 0
 for every masked pair.*
 
@@ -722,7 +753,7 @@ The kernel in my trainer [1] (`attention.cuh`) is C1 and C2 written out, as llm.
 | B7, B8 | two `cublasSgemmStridedBatched`, scale $$1/\sqrt{d}$$ | $$dQ = dS\, K$$, $$dK = dS^\top Q$$ |
 | B9 | `attention_merge_qkv_grad_kernel` | F1 undone |
 
-*Table 19. "Strided batched": one call makes many products of the same size, each one stride further
+*Table 20. "Strided batched": one call makes many products of the same size, each one stride further
 along in memory: here, one per head of each sequence. cuBLAS reads matrices by columns, so each product
 is asked for turned round, as the linear note's cuBLAS version does [3].*
 
