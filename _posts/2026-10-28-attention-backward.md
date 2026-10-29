@@ -1,8 +1,8 @@
 ---
 title: "Attention backward, broken down and rebuilt: nine chain-rule steps, a softmax over a whole row and four matrix products"
 date: 2026-10-28
-modified: 2026-10-28
-version: 1
+modified: 2026-10-29
+version: 2
 permalink: /posts/attention-backward/
 excerpt: "Causal self-attention is how each token of GPT-2 takes in the tokens before it: a query asks, keys answer, and values are passed on, mixed by weights that add up to 1. Its backward pass is usually given as four matrix products and a softmax line. This note takes one head apart into six forward steps and nine backward steps, each derived with the chain rule written out in full, and works one head of 3 tokens through all of them. The softmax here gets a gradient on every weight, not only the target's as in the classifier, and its backward comes out as one line: ds = a (da − row_dot). Then it puts the steps back together into the four products a GPU runs with cuBLAS, and shows where each ᵀ and each sum comes from."
 tags:
@@ -86,6 +86,26 @@ F4 is the softmax of the classifier note [5], step by step: the largest score $$
 first so that exp cannot overflow, and it changes no weight. Why $$\sqrt{d}$$ in F2: a dot product of
 $$d$$ random numbers grows like $$\sqrt{d}$$, so dividing by it keeps the scores near 1 for any $$d$$,
 and the softmax away from weights that are all 0 and one 1 [7].
+
+**The steps, to play with.** The pictures below are the steps above with numbers in them. Tokens 0 to 2 are the running example of Section 1.4; tokens 3 to 7 are added so the mask's staircase shows, and the buttons switch between the two. Every number is worked out in the page, with the formulas above.
+
+<script src="/assets/js/attention-widgets.js" defer></script>
+
+<div class="aw" data-widget="split">This picture needs JavaScript.</div>
+
+*Interactive 1. F1 and F6 at GPT-2's real sizes. Each head takes the same 64 columns out of the q, k and v parts of every qkv row, and its output goes back to the same 64 columns of the output row. Nothing is worked out: values only move.*
+
+<div class="aw" data-widget="F2">This picture needs JavaScript.</div>
+
+*Interactive 2. F2. Score $$s_{tj}$$ is row $$t$$ of $$Q$$ dotted with row $$j$$ of $$K$$, over the head's 4 columns, divided by $$\sqrt{4} = 2$$. $$K$$ is used by rows, so in the product it is read turned round, $$K^\top$$. The striped cells are after the token: cuBLAS works them out too, and F3 masks them.*
+
+<div class="aw" data-widget="softmax-forward">This picture needs JavaScript.</div>
+
+*Interactive 3. F3 and F4 on one row. Only the columns up to $$t$$ take part. The largest score $$m_t$$ is taken away before exp, and adding one number to every score of the row moves the scores and $$m_t$$ together, so no weight changes.*
+
+<div class="aw" data-widget="F5">This picture needs JavaScript.</div>
+
+*Interactive 4. F5. **Row $$t$$ of $$A$$ is the only row used** for $$y_t$$: its lit cells, columns 0 to $$t$$, are the weights, and the striped cells after it are the masked future, 0. **The lit rows of $$V$$** are the ones those weights multiply; rows after $$t$$ get weight 0 and add nothing. **The shape line** is $$(1 \times (t+1)) \cdot ((t+1) \times 4) = 1 \times 4$$: the shared length grows with $$t$$, but **$$y_t$$ is always one row of 4 numbers**, 64 in GPT-2, however many tokens are mixed. $$A$$'s staircase is the lower triangle the mask makes: row 0 has 1 visible cell, row 7 has 8. The GPU works out the full $$A V$$ in one go, and the zeros above the diagonal make it equal to the cut version.*
 
 ### 1.3 The names
 
@@ -248,7 +268,7 @@ dy_t[c] &= d\text{output}_t[h d + c] \cdot 1
 $$
 
 **The whole batch.** Every value of every head of every sequence is copied to one place: no sums. The
-gradient of the layer after, `{4, 1024, 768}`, is cut into heads, `{4, 12, 1024, 64}`.
+gradient of the layer after, `{4, 1024, 768}`, is cut into heads, `{4, 12, 1024, 64}`. Interactive 1, read from the output row up, shows where each value of the gradient goes.
 
 **Example.** One head, so $$dy$$ is the given $$[1,\ 0,\ 0,\ 0]$$ for each token.
 
@@ -294,6 +314,10 @@ $$0.01\, v_0 = [0.01, 0, 0, 0]$$, and $$L$$, the sum of column 0, by 0.01: $$da_
 $$a_{22}$$ instead: $$y_2$$ moves by $$0.01\, v_2 = [0, 0, 0.01, 0]$$, column 2, which $$L$$ does not count:
 $$da_{22} = 0$$.
 
+<div class="aw" data-widget="B2">This picture needs JavaScript.</div>
+
+*Interactive 5. B2. $$da_{tj}$$ is $$dy_t$$ dotted with $$v_j$$. $$V$$ is used by rows, so it is read as $$V^\top$$. With 8 tokens, every token whose $$v$$ has a number in column 0 (tokens 0, 4, 6 and 7) gets a non-zero $$da$$: the loss counts column 0 only.*
+
 ### 3.3 B3: the values, $$dv$$
 
 **One head.** From F5 again, now with respect to $$v_j[c]$$, holding the weights fixed:
@@ -331,6 +355,10 @@ token's $$dy$$.*
 
 **What it means.** Raise $$v_0[0]$$ by 0.01: every token's output column 0 moves by its weight on token 0
 times 0.01, and $$L$$ by $$0.01 \times (1 + 0.2689414 + 0.2119416) = 0.0148088$$: $$dv_0[0] = 1.4808830$$.
+
+<div class="aw" data-widget="B3">This picture needs JavaScript.</div>
+
+*Interactive 6. B3. $$dv_j$$ mixes the rows of $$dY$$ of every token that sees token $$j$$, weighted by **column** $$j$$ of $$A$$: a column, so $$A^\top$$. Token 0 is seen by every token, so its column is the longest; the last token is seen only by itself. With 8 tokens, $$dv_0$$ has 5 more terms than Table 9, because tokens 3 to 7 look back at token 0 too.*
 
 ### 3.4 B4: the softmax's sum, $$dS$$
 
@@ -495,6 +523,10 @@ $$k_1 = [0, 1, 0, 0]$$, to score token 0 higher.*
 **What it means.** Raise $$q_2[0]$$ by 0.01: token 2's scores of tokens 0 and 2, whose keys have a 1 in
 column 0, go up by $$0.01 / 2$$, and $$L$$ by 0.0002243, about $$0.01 \times 0.0224596$$.
 
+<div class="aw" data-widget="B7">This picture needs JavaScript.</div>
+
+*Interactive 7. B7. $$dq_t$$ mixes the keys of the tokens $$t$$ can see, weighted by row $$t$$ of $$dS$$, and halved. A positive $$ds_{tj}$$ turns the query toward $$k_j$$, a negative one away. Token 0's row of $$dS$$ is 0, so $$dq_0 = 0$$.*
+
 ### 3.8 B8: the keys, $$dk$$
 
 **One head.** From F2 again, now with respect to $$k_j[c]$$, holding $$q$$ fixed:
@@ -529,6 +561,10 @@ $$
 
 **What it means.** Raise $$k_0[0]$$ by 0.01: $$L$$ goes up by 0.0016750, about $$0.01 \times 0.1670223$$.
 Raise $$k_1[1]$$ by 0.01: $$L$$ goes down by 0.0024121, about $$0.01 \times 0.2415312$$.
+
+<div class="aw" data-widget="B8">This picture needs JavaScript.</div>
+
+*Interactive 8. B8. $$dk_j$$ mixes the queries of the tokens that see token $$j$$, weighted by **column** $$j$$ of $$dS$$, so $$dS^\top$$, and halved. It is B3's shape again, with $$dS$$ for $$A$$ and $$Q$$ for $$dY$$.*
 
 ### 3.9 B9: back into qkv
 
@@ -597,6 +633,10 @@ its $$da$$ is above that mean, scaled by the weight itself. At row 1:
 $$0.2689414 \times (1 - 0.2689414) = 0.1966119$$, B6's number. The kernel works out only this line:
 $$S$$, $$e$$ and $$de$$ never exist.
 
+<div class="aw" data-widget="softmax-backward">This picture needs JavaScript.</div>
+
+*Interactive 9. C1 on one row. $$\text{row\_dot}_t$$ is the row's $$da$$, weighted by $$a$$. Each $$ds$$ is its weight times how far its $$da$$ is above that mean, so each row of $$ds$$ adds up to 0. With 8 tokens, tokens 4, 6 and 7 also have a number in column 0 of their $$v$$, so their $$da$$ is not 0 either.*
+
 ### 4.2 C2: four matrix products
 
 Write each head's rows as matrices: $$Q$$, $$K$$, $$V$$, $$Y$$ are $$\{T, d\}$$, one row per token; $$S$$
@@ -617,6 +657,8 @@ way is read turned round, $$\top$$:
 *Table 18. The two forward products and the four backward ones. The sums "over $$j \le t$$" and "over
 $$t \ge j$$" need nothing special: $$A$$ and $$dS$$ are 0 above the diagonal, so the full products add 0
 for every masked pair.*
+
+Interactives 2, 4, 5, 6, 7 and 8 are these six products. In each, the values one cell uses are lit. Where they run down a column of a stored matrix, the summed index is that matrix's first, and it is read turned round: $$K^\top$$ in F2, $$V^\top$$ in B2, $$A^\top$$ in B3, $$dS^\top$$ in B8.
 
 $$
 \boxed{\;dA = dY\, V^\top, \quad dV = A^\top dY, \quad dS = A \odot (dA - \text{row\_dot}), \quad dQ = \tfrac{1}{\sqrt{d}}\, dS\, K, \quad dK = \tfrac{1}{\sqrt{d}}\, dS^\top Q\;}
