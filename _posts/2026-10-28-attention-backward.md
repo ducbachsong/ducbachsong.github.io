@@ -66,7 +66,39 @@ The mix is token 2's output: what it takes in from the tokens it can see. GPT-2 
 **12 heads** at once, each with its own 64 columns of $$q$$, $$k$$ and $$v$$, so each head can look for
 something different. The 12 outputs of 64 are put side by side, 768 per token.
 
-### 1.2 Six steps for one head
+### 1.2 The names
+
+| symbol | meaning | shape in GPT-2 small |
+|---|---|---|
+| `{4, 12, 1024, 64}` | how a shape reads: 4 sequences in a batch, 12 heads, $$T$$ tokens, $$d$$ columns | — |
+| $$T$$ | tokens per sequence | 1024 |
+| $$t$$ | the token that looks: a row | — |
+| $$j$$ | the token looked at: a column, $$j \le t$$ | — |
+| $$d$$ | head size: columns per head | 64 |
+| $$c$$ | one of the head's $$d$$ columns | — |
+| $$h$$ | one of the 12 heads | — |
+| qkv | the qkv linear's output: per token, a $$q$$, a $$k$$ and a $$v$$ part of $$768 = 12 \times 64$$ columns each | `{4, 1024, 2304}` |
+| $$q, k, v$$ | query, key, value: per head, one row of $$d$$ per token | `{4, 12, 1024, 64}` each |
+| $$s, a$$ | scores and weights: one per pair $$j \le t$$ | `{4, 12, 1024, 1024}` |
+| $$m_t, S_t$$ | row $$t$$'s largest score, and the sum of its $$e$$ | one per row |
+| $$e$$ | $$\exp(s - m)$$: one per pair $$j \le t$$ | — |
+| $$y$$ | the head's output: one row of $$d$$ per token | `{4, 12, 1024, 64}` |
+| $$Q, K, V, Y$$ | one head's $$q, k, v, y$$ rows stacked as a matrix: row $$t$$ of $$Q$$ is $$q_t$$ | `{1024, 64}` per head |
+| $$S, A$$ | one head's $$s$$ and $$a$$ as a matrix: row $$t$$, column $$j$$ is $$s_{tj}$$, $$a_{tj}$$; the cells after the token ($$j > t$$) are masked. A capital with no index: not $$S_t$$, the sum | `{1024, 1024}` per head |
+| $$X^\top$$ | matrix $$X$$ read turned round: row $$j$$, column $$t$$ of $$X^\top$$ is row $$t$$, column $$j$$ of $$X$$ | — |
+| $$\odot$$, rowsum | multiply two matrices of the same shape place by place; add up each row | — |
+| $$L$$ | the loss: one number, how wrong the model is | 1 |
+| $$\partial$$ | partial derivative: change one variable, hold all others fixed | — |
+| $$da$$ | short for $$\partial L / \partial a$$, for any variable $$a$$; same shape as $$a$$. So $$dS_t$$ is one number per row, the sum's gradient, and $$dS$$ is the matrix of $$ds$$ | — |
+
+*Table 2. $$dy$$ is given: it is what the layer after sends back, cut into heads (B1). The job is to
+find $$dq$$, $$dk$$ and $$dv$$. Attention has no weight and no bias of its own: those are in the qkv
+linear before it and the output linear after it.*
+
+Heads never mix, and nor do the 4 sequences of the batch: everything below is for one head of one
+sequence, and GPT-2 runs $$4 \times 12 = 48$$ of them side by side.
+
+### 1.3 Six steps for one head
 
 For one head, with $$d$$ columns per head ($$d = 64$$ in GPT-2), token $$t$$ and an earlier token
 $$j \le t$$:
@@ -106,29 +138,6 @@ and the softmax away from weights that are all 0 and one 1 [7].
 <div class="aw" data-widget="F5">This picture needs JavaScript.</div>
 
 *Interactive 4. F5. **Row $$t$$ of $$A$$ is the only row used** for $$y_t$$: its lit cells, columns 0 to $$t$$, are the weights, and the striped cells after it are the masked future, 0. **The lit rows of $$V$$** are the ones those weights multiply; rows after $$t$$ get weight 0 and add nothing. **The shape line** is $$(1 \times (t+1)) \cdot ((t+1) \times 4) = 1 \times 4$$: the shared length grows with $$t$$, but **$$y_t$$ is always one row of 4 numbers**, 64 in GPT-2, however many tokens are mixed. $$A$$'s staircase is the lower triangle the mask makes: row 0 has 1 visible cell, row 7 has 8. The GPU works out the full $$A V$$ in one go, and the zeros above the diagonal make it equal to the cut version.*
-
-### 1.3 The names
-
-| symbol | meaning | shape in GPT-2 small |
-|---|---|---|
-| $$t$$ | the token that looks: a row | — |
-| $$j$$ | the token looked at: a column, $$j \le t$$ | — |
-| $$c$$ | one of the head's $$d$$ columns | — |
-| $$d$$ | head size: columns per head | 64 |
-| $$q, k, v$$ | query, key, value: per head, one row of $$d$$ per token | `{4, 12, 1024, 64}` each |
-| $$s, a$$ | scores and weights: one per pair $$j \le t$$ | `{4, 12, 1024, 1024}` |
-| $$m, S$$ | the row's largest score, and the sum of its $$e$$ | one per row |
-| $$y$$ | the head's output: one row of $$d$$ per token | `{4, 12, 1024, 64}` |
-| $$L$$ | the loss: one number, how wrong the model is | 1 |
-| $$\partial$$ | partial derivative: change one variable, hold all others fixed | — |
-| $$da$$ | short for $$\partial L / \partial a$$, for any variable $$a$$; same shape as $$a$$ | — |
-
-*Table 2. $$dy$$ is given: it is what the layer after sends back, cut into heads (B1). The job is to
-find $$dq$$, $$dk$$ and $$dv$$. Attention has no weight and no bias of its own: those are in the qkv
-linear before it and the output linear after it.*
-
-Heads never mix, and nor do the 4 sequences of the batch: everything below is for one head of one
-sequence, and GPT-2 runs $$4 \times 12 = 48$$ of them side by side.
 
 ### 1.4 The running example
 
@@ -175,7 +184,7 @@ Figure 1 is the whole plan, from the end back:
 | B1 | F6: the merge | $$dy$$, cut into heads |
 | B2 | F5: $$a_{tj} \to y_t$$ | $$da$$ |
 | B3 | F5: $$v_j \to y_t$$ | $$dv$$ |
-| B4 | F4: $$S_t \to a_{tj}$$ | $$dS$$ |
+| B4 | F4: $$S_t \to a_{tj}$$ | $$dS_t$$ |
 | B5 | F4: $$e_{tj} \to a_{tj}$$ and $$e_{tj} \to S_t$$ | $$de$$, two parts added |
 | B6 | F4: $$s_{tj} \to e_{tj}$$ | $$ds$$ (and $$dm = 0$$) |
 | B7 | F2: $$q_t \to s_{tj}$$ | $$dq$$ |
@@ -360,7 +369,7 @@ times 0.01, and $$L$$ by $$0.01 \times (1 + 0.2689414 + 0.2119416) = 0.0148088$$
 
 *Interactive 6. B3. $$dv_j$$ mixes the rows of $$dY$$ of every token that sees token $$j$$, weighted by **column** $$j$$ of $$A$$: a column, so $$A^\top$$. Token 0 is seen by every token, so its column is the longest; the last token is seen only by itself. With 8 tokens, $$dv_0$$ has 5 more terms than Table 9, because tokens 3 to 7 look back at token 0 too.*
 
-### 3.4 B4: the softmax's sum, $$dS$$
+### 3.4 B4: the softmax's sum, $$dS_t$$
 
 **One head.** From F4, $$a_{tj} = e_{tj} \cdot \frac{1}{S_t}$$, with respect to $$S_t$$, holding
 $$e_{tj}$$ fixed, with Table 7:
@@ -432,7 +441,7 @@ $$
 | row 1 | $$1/1.3678794 - 0.1966119 = 0.5344466$$ | $$0 - 0.1966119 = -0.1966119$$ | |
 | row 2 | $$1/1.7357589 - 0.1221031 = 0.4540138$$ | $$-0.1221031$$ | $$-0.1221031$$ |
 
-*Table 11. B5 in the example. Road 1 is $$da / S$$; road 2, $$dS$$, is the same for every column of the
+*Table 11. B5 in the example. Road 1 is $$da / S$$; road 2, $$dS_t$$, is the same for every column of the
 row.*
 
 **What it means.** Raise $$e_{10}$$ by 0.01 and let only road 1 see it, $$S_1$$ held: $$a_{10}$$ goes up by
@@ -598,7 +607,7 @@ Side by side with the earlier notes:
 |---|---|---|---|---|
 | steps | 9 | 3 | 7 | 9 |
 | a gradient summed over rows | $$d\gamma$$, $$d\beta$$ | $$dW$$, $$db$$ | none | none: no weights |
-| a gradient summed over a row | $$dr$$, $$dv$$, $$d\mu$$ | $$dx$$ | $$dm$$, 0 | $$dS$$, $$dq$$ |
+| a gradient summed over a row | $$dr$$, $$dv$$, $$d\mu$$ | $$dx$$ | $$dm$$, 0 | $$dS_t$$, $$dq$$ |
 | summed over later tokens | — | — | — | $$dv$$, $$dk$$ |
 | a value used twice | $$x$$, $$d$$ | none | $$a_t$$, $$z$$ | $$e$$ |
 
@@ -676,7 +685,7 @@ $$
 \sum_{j \le t} ds_{tj} = \sum_j a_{tj}\, da_{tj} - \text{row\_dot}_t \sum_j a_{tj} = \text{row\_dot}_t - \text{row\_dot}_t \times 1 = 0
 $$
 
-Adding one number to every score of a row changes no weight (the shift of Section 1.2), so the loss
+Adding one number to every score of a row changes no weight (the shift of Section 1.3), so the loss
 cannot care about that direction. In the example: $$0.1670223 - 0.0449192 - 0.1221031 = 0$$. This is also
 why the max's road carries nothing (B6).
 
