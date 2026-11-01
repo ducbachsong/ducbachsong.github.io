@@ -1,0 +1,69 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 450" font-family="-apple-system, 'Segoe UI', Helvetica, Arial, sans-serif" font-size="13">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M 0 0 L 10 5 L 0 10 z" fill="#495057"/>
+    </marker>
+  </defs>
+  <rect width="900" height="450" fill="#ffffff"/>
+  <text x="20" y="26" text-anchor="start" font-size="15" fill="#212529" font-weight="600">One GPT-2 block: ten forward steps, F1 to F10</text>
+  <text x="20" y="44" text-anchor="start" font-size="13" fill="#495057">Each box is one kernel; under it, the value it makes and its shape. The backward walks every arrow the other way, B1 to B10.</text>
+  <text x="20" y="60" text-anchor="start" font-size="13" fill="#495057">x and h each have two arrows going out, into the branch and straight into the add, so each one's gradient has two parts.</text>
+
+  <!-- attention half -->
+  <rect x="20" y="167" width="70" height="36" rx="6" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="55" y="190.6" text-anchor="middle" font-size="16" fill="#212529" font-style="italic">x</text>
+  <rect x="130" y="95" width="100" height="36" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="180" y="117.5" text-anchor="middle" fill="#212529">F1 LayerNorm 1</text>
+  <rect x="260" y="95" width="120" height="36" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="320" y="117.5" text-anchor="middle" fill="#212529">F2 qkv linear</text>
+  <rect x="410" y="95" width="100" height="36" rx="6" fill="#fff4e6" stroke="#e8590c"/>
+  <text x="460" y="117.5" text-anchor="middle" fill="#212529">F3 attention</text>
+  <rect x="540" y="95" width="150" height="36" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="615" y="117.5" text-anchor="middle" fill="#212529">F4 attention_out linear</text>
+  <text x="180" y="148" text-anchor="middle" font-size="12" fill="#495057"><tspan font-style="italic">n</tspan>₁ {B, T, D}</text>
+  <text x="320" y="148" text-anchor="middle" font-size="12" fill="#495057"><tspan font-style="italic">z</tspan> {B, T, 3D}</text>
+  <text x="460" y="148" text-anchor="middle" font-size="12" fill="#495057"><tspan font-style="italic">a</tspan> {B, T, D}</text>
+  <text x="615" y="148" text-anchor="middle" font-size="12" fill="#495057"><tspan font-style="italic">o</tspan> {B, T, D}</text>
+  <path d="M 55 167 C 55 113, 90 113, 128 113" fill="none" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="230" y1="113" x2="258" y2="113" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="380" y1="113" x2="408" y2="113" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="510" y1="113" x2="538" y2="113" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 690 113 C 740 113, 740 140, 740 165" fill="none" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="90" y1="185" x2="720" y2="185" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="400" y="178" text-anchor="middle" font-size="12" fill="#212529">the skip: x straight into the add</text>
+  <circle cx="740" cy="185" r="18" fill="#ebfbee" stroke="#2f9e44"/>
+  <text x="740" y="191" text-anchor="middle" font-size="18" fill="#2f9e44" font-weight="600">+</text>
+  <text x="740" y="220" text-anchor="middle" font-size="12" fill="#212529">F5</text>
+  <line x1="758" y1="185" x2="788" y2="185" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="790" y="167" width="80" height="36" rx="6" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="830" y="190.6" text-anchor="middle" font-size="16" fill="#212529" font-style="italic">h</text>
+
+  <!-- MLP half -->
+  <path d="M 830 203 L 830 245 L 55 245 L 55 385 L 720 385" fill="none" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <text x="440" y="238" text-anchor="middle" font-size="12" fill="#495057">h {B, T, D} goes on into the MLP half</text>
+  <text x="400" y="378" text-anchor="middle" font-size="12" fill="#212529">the skip: h straight into the add</text>
+  <rect x="130" y="295" width="100" height="36" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="180" y="317.5" text-anchor="middle" fill="#212529">F6 LayerNorm 2</text>
+  <rect x="260" y="295" width="120" height="36" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="320" y="317.5" text-anchor="middle" fill="#212529">F7 mlp_up linear</text>
+  <rect x="410" y="295" width="100" height="36" rx="6" fill="#fff4e6" stroke="#e8590c"/>
+  <text x="460" y="317.5" text-anchor="middle" fill="#212529">F8 GELU</text>
+  <rect x="540" y="295" width="150" height="36" rx="6" fill="#f8f9fa" stroke="#868e96"/>
+  <text x="615" y="317.5" text-anchor="middle" fill="#212529">F9 mlp_down linear</text>
+  <text x="180" y="348" text-anchor="middle" font-size="12" fill="#495057"><tspan font-style="italic">n</tspan>₂ {B, T, D}</text>
+  <text x="320" y="348" text-anchor="middle" font-size="12" fill="#495057"><tspan font-style="italic">u</tspan> {B, T, 4D}</text>
+  <text x="460" y="348" text-anchor="middle" font-size="12" fill="#495057"><tspan font-style="italic">g</tspan> {B, T, 4D}</text>
+  <text x="615" y="348" text-anchor="middle" font-size="12" fill="#495057"><tspan font-style="italic">m</tspan> {B, T, D}</text>
+  <path d="M 55 270 C 55 313, 90 313, 128 313" fill="none" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="230" y1="313" x2="258" y2="313" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="380" y1="313" x2="408" y2="313" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <line x1="510" y1="313" x2="538" y2="313" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <path d="M 690 313 C 740 313, 740 340, 740 365" fill="none" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <circle cx="740" cy="385" r="18" fill="#ebfbee" stroke="#2f9e44"/>
+  <text x="740" y="391" text-anchor="middle" font-size="18" fill="#2f9e44" font-weight="600">+</text>
+  <text x="740" y="420" text-anchor="middle" font-size="12" fill="#212529">F10</text>
+  <line x1="758" y1="385" x2="788" y2="385" stroke="#495057" stroke-width="1.5" marker-end="url(#arrow)"/>
+  <rect x="790" y="367" width="80" height="36" rx="6" fill="#e7f5ff" stroke="#1971c2"/>
+  <text x="830" y="390.6" text-anchor="middle" font-size="16" fill="#212529" font-style="italic">y</text>
+  <text x="20" y="440" text-anchor="start" font-size="12" fill="#495057">Grey boxes have parameters (12 tensors in all); the orange ones, attention and GELU, have none. The adds have none.</text>
+</svg>
