@@ -1,0 +1,18 @@
+Batch F (part 3). Commit c6155b4, tests/test_block.cu: one GPT-2 block, {4, 1024, 768} with 12 heads, all
+tensors bfloat16 (LayerNorm's mean and rstd float), mine against PyTorch's block with autograd on the same
+values in bfloat16. Google Colab, Tesla T4, -arch=native, linked against PyTorch's own cuBLAS and cuBLASLt
+(libcublas.so.13, libcublasLt.so.13 under nvidia/cu13/lib). Only the timing test is kept here; every other
+test of the program passed: the block against PyTorch in float within 1e-4 ({2, 64, 768}: largest difference
+9.0e-7; {3, 37, 64}: 4.5e-7) and in bfloat16 within 3e-2 ({2, 64, 768}: 8.5e-3), and the four tests worked out
+by hand.
+
+linking /usr/local/lib/python3.13/dist-packages/torch/lib/../../nvidia/cu13/lib/libcublas.so.13 and /usr/local/lib/python3.13/dist-packages/torch/lib/../../nvidia/cu13/lib/libcublasLt.so.13
+
+time_20_steps_on_gpt2_small_size
+    average of steps 3..20:   my forward   my backward   PyTorch forward   PyTorch backward
+        ms                        23.685        48.362            30.921             49.018
+    PyTorch takes, against mine:                                    1.31x              1.01x
+    input: list_of(mine.output)                 expected: {-0.133516, 1.43511, -0.227832, -0.414848, -0.650618, -0.650202, -1.82959, 1.45537, -1.64355, -0.438926, -1.67529, 1.2766, -2.49106, 0.0719904, 1.21725, -0.0916171, ... (3145728 values)}   actual: {-0.125, 1.4375, -0.229492, -0.416016, -0.648438, -0.648438, -1.82812, 1.45312, -1.64062, -0.4375, -1.67969, 1.27344, -2.5, 0.0800781, 1.22656, -0.0917969, ... (3145728 values)}   difference: 0.00538187 (at most 0.03)   ok  (line 270)
+    input: list_of(mine.input_grad)             expected: {-1.24705, 1.03044, 0.77437, 4.57803, 0.565622, 0.773691, -0.210959, 0.121756, -1.69046, 1.22466, 1.80271, 1.06558, 3.04927, -0.249147, -2.23289, 1.61643, ... (3145728 values)}   actual: {-1.25781, 1.02344, 0.792969, 4.5625, 0.578125, 0.769531, -0.198242, 0.125, -1.6875, 1.22656, 1.8125, 1.07812, 3.04688, -0.253906, -2.23438, 1.625, ... (3145728 values)}   difference: 0.00685523 (at most 0.03)   ok  (line 271)
+
+all tests passed

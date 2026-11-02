@@ -1,11 +1,11 @@
 ---
-title: "How many threads? Launch sizes for GPT-2's encoder and LayerNorm kernels on a T4"
+title: "How many threads? Launch sizes for GPT-2's kernels on a T4, in float and bfloat16"
 collection: publications
 date: 2026-10-07
-modified: 2026-10-14
-version: 4
+modified: 2026-11-02
+version: 5
 permalink: /research/encoder-launch-sizes/
-excerpt: "GPT-2's encoder as three CUDA kernels, timed on a Tesla T4 with 32 launch sizes each, in 16 runs. Every launch gives the same result. With fewer threads than the 40,960 a T4 holds at once, the backward into the token table, which loaded one float at a time, slowed down 2.2-2.7x; the others hardly at all. A bytes-in-flight model predicted the order, and a test that changed only the load width confirmed the cause: with one float4 per load the slow-down fell to 1.02-1.06x, so the kernel now loads float4s. Part 2 (version 4) does the same for GPT-2's LayerNorm kernels and finds the opposite: both are fastest with far fewer warps than a T4 holds, most likely because each row is read again from the L1 cache. PyTorch's own launch rule stays inside the cache; my kernels can beat it with a launch chosen for this shape and a backward fused into one kernel."
+excerpt: "GPT-2's encoder as three CUDA kernels, timed on a Tesla T4 with 32 launch sizes each, in 16 runs. Every launch gives the same result. With fewer threads than the 40,960 a T4 holds at once, the backward into the token table, which loaded one float at a time, slowed down 2.2-2.7x; the others hardly at all. A bytes-in-flight model predicted the order, and a test that changed only the load width confirmed the cause: with one float4 per load the slow-down fell to 1.02-1.06x, so the kernel now loads float4s. Part 2 (version 4) does the same for GPT-2's LayerNorm kernels and finds the opposite: both are fastest with far fewer warps than a T4 holds, most likely because each row is read again from the L1 cache. PyTorch's own launch rule stays inside the cache; my kernels can beat it with a launch chosen for this shape and a backward fused into one kernel. Part 3 (version 5) sweeps every kernel of the trainer in float and bfloat16 side by side, the launches taking turns, and picks each launch for bfloat16, the dtype training runs in: five launches change, about 3.1 ms per training step, and a launch picked in float turns out 1.66x slower in bfloat16. One GPT-2 block in bfloat16 runs its forward 1.31x as fast as PyTorch's and its backward as fast."
 read_time: true
 tags:
   - cuda
@@ -43,8 +43,21 @@ GPU; at my usual launch its forward was as fast as mine or faster. My backward w
 than PyTorch's, most likely because it is one kernel that moves about half the bytes, not because of
 its launch.
 
-*Version 4, October 14, 2026: adds part 2, LayerNorm ([Section 11](#11-part-2-layernorm)). What each
-version changed is listed under [Versions](#versions).*
+**Part 3: every kernel, in bfloat16.** Training will run in bfloat16, which halves the bytes a thread
+keeps in flight and the size of a row in the cache, so the float launches were measured again. Eight
+kernel files are swept in float and bfloat16 side by side, the launches taking turns over 20 rounds so
+that no launch gets a better stretch of the GPU's clock, and each launch is picked from the bfloat16
+column. Every launch gives its dtype's usual result. **Five launches change and save about 3.1 ms per
+training step in bfloat16**; the LayerNorm backward's bfloat16 gradient also comes out twice as close
+to float's. **A launch picked in float can be wrong in bfloat16**: the attention forward's fastest
+float launch is 1.66x slower in bfloat16, most likely because twice as many bfloat16 rows fit in the
+cache. And **one GPT-2 block in bfloat16 now runs its forward 1.31x as fast as PyTorch's, and its
+backward as fast**; the new launches account for 0.23 ms of the backward, and the forward's lead, which
+they did not change, is still to be explained.
+
+*Version 5, November 2, 2026: adds part 3, every kernel in float and bfloat16 ([Section
+12](#12-part-3-every-kernel-in-bfloat16)). What each version changed is listed under
+[Versions](#versions).*
 
 * TOC
 {:toc}
@@ -67,7 +80,8 @@ raised a third question, why the kernels react so differently, and most of this 
 answering that one properly: with a prediction made before the run, not an explanation fitted after.
 Part 2 (Section 11), added a week later, asks the same questions of the next kernels of the trainer,
 LayerNorm's, and a fourth: PyTorch works out its own launch, so why can a kernel with a launch of its
-own be faster?
+own be faster? Part 3 (Section 12) asks them once more for every kernel, in bfloat16, the dtype the
+trainer will train in.
 
 **Contributions.**
 
@@ -83,6 +97,8 @@ own be faster?
 6. Part 2: the same test for GPT-2's two LayerNorm kernels at 40 launch sizes, where fewer warps is
    faster, and a comparison with PyTorch's kernels and the launch PyTorch works out itself
    (Section 11).
+7. Part 3: every kernel of the trainer swept in float and bfloat16 side by side, the launches taking
+   turns; launches picked for bfloat16; one GPT-2 block in bfloat16 against PyTorch's (Section 12).
 
 ## 2. Background
 
@@ -857,6 +873,260 @@ for this shape on this GPU, about 1.25x for the forward, and a backward fused in
 moves half the bytes, 1.09–1.35x. The launches in the code stay until the cache explanation is
 tested.
 
+## 12. Part 3: every kernel, in bfloat16
+
+*Added in version 5, November 2, 2026.*
+
+Parts 1 and 2 timed float. The trainer will train in bfloat16: each value 2 bytes instead of 4, the math
+still done in float (the [note on half and bfloat16](/posts/half-and-bfloat16/) explains the format). A
+launch is a choice about bytes in flight (Section 6) and about rows in the cache (Section 11.5), and
+bfloat16 halves both, so the launches picked in float need not be the right ones. This part sweeps
+every kernel of the trainer that has a launch to choose, in float and bfloat16 side by side, picks each
+launch from the bfloat16 column, and then times a whole GPT-2 block against PyTorch's.
+
+### 12.1 What bfloat16 changes for a launch
+
+| | float | bfloat16 |
+|---|---:|---:|
+| one 4-value load (`load4`) | 16 bytes | 8 bytes |
+| bytes a thread keeps in flight, same code | 1x | 0.5x |
+| one row of 768 (LayerNorm) | 3 KB | 1.5 KB |
+| one row of attention weights, 1,024 | 4 KB | 2 KB |
+| AdamW's bytes per value (`p`, `g` bfloat16; `m`, `v` float in both) | 28 | 22 |
+
+*Table 24. The kernels load 4 values at a time in either dtype ([`tensor.cuh`](https://github.com/ducbachsong/gpt2-small/blob/c6155b4/llmc/tensor.cuh)'s
+`load4` turns 4 bfloat16s, one 8-byte load, into 4 floats).*
+
+By part 1, half the bytes in flight per thread means more threads are needed to keep memory busy. By
+part 2, rows half as big means twice as many fit in the cache, so more warps can work at once before
+the re-reads miss. The two push the same way: towards more warps.
+
+### 12.2 Method
+
+The sweeps of parts 1 and 2 were extended to all eight kernel files at commit
+[`c6155b4`](https://github.com/ducbachsong/gpt2-small/tree/c6155b4), and changed in two ways.
+
+**Both dtypes in one sweep.** Every test makes its tensors twice, in float and in bfloat16 (the same
+values, rounded), and times each launch in both. Each dtype's result is checked against the usual launch
+of the same dtype, by the criteria of Table 5.
+
+**Launches take turns.** Parts 1 and 2 timed one launch 20 times in a row, then the next. Here the
+test runs 20 *rounds*, and each round times every launch once, all kernels and both dtypes; each
+launch's time is the mean of its 20 runs, run 1 included (the warm-up of Section 6.4 has done the
+first-time work). One launch's 20 runs in a row all land in the same few seconds; if the GPU's clock
+drifts as it heats up, the first launches timed get the fastest clock. The question came up when
+AdamW's sweep named its very first launch, 40 × 128, the fastest. Timed in turns, it still was:
+14.218 ms against 14.743 for one float4 per thread, the same 0.4–0.5 ms lead as before.
+
+| kernel | sweep | blocks × threads |
+|---|---|---|
+| AdamW (124,439,808 values) | update | 7 × 4: 40 … 40,960 and one float4 per thread × 128 … 1,024 |
+| attention softmax ({4, 12, 1024, 1024}) | forward, backward | 7 × 4 |
+| classifier ({4096, 50304}) | forward, backward, separately | 7 × 4 each |
+| encoder | forward, wte backward, wpe backward | 8 × 4, as part 1 |
+| GELU ({4, 1024, 3072}), residual ({4, 1024, 768}) | forward, backward | 8 × 4 |
+| LayerNorm | forward, backward | 8 × 4, as part 2 (64 … 512 threads) |
+| gradient norm (124,439,808 values) | norm | 8 × 4: 40 … 4,096 × 128 … 1,024 |
+
+*Table 25. The sweeps. The gradient norm's kernel had its launch built in (512 blocks of 32 warps);
+[`grad_norm.cuh`](https://github.com/ducbachsong/gpt2-small/blob/c6155b4/llmc/kernels/grad_norm.cuh)
+now reads it from `gridDim` and `blockDim`, and gives the same norm, to the last bit, at its usual
+launch. The linear kernel's launch is set by its tiles and the matrix shapes, and cuBLAS chooses its own,
+so neither is swept.*
+
+| run | code | what |
+|---|---|---|
+| E1 | `c6155b4`'s tests, the launches as they were before this part | the eight sweeps |
+| E2 | `c6155b4` | the four sweeps whose kernels changed after E1: attention, classifier, LayerNorm, encoder |
+| F | `c6155b4` | one GPT-2 block in bfloat16, mine against PyTorch's (Section 12.7) |
+
+*Table 26. Batch E and run F, Colab T4, one run each. The tables below take E2's numbers for the four
+kernels it has and E1's for the rest.*
+
+### 12.3 Correctness
+
+Every launch of every sweep gave its dtype's usual result: in bfloat16 as in float, to the last bit
+wherever each value is worked out by one thread or one warp; within $$10^{-5}$$ where `atomicAdd`s or
+a different split of a sum change the order of float additions; and within the test's bfloat16
+tolerance, $$2 \times 10^{-2}$$, for the encoder's bfloat16 `wte_grad`, whose `atomicAdd`s round each
+sum to bfloat16. One check was wrong at first. E1's LayerNorm
+sweep compared bfloat16 `weight_grad` and `bias_grad` between two launches within 2%, and every launch
+failed, the usual one included. In bfloat16 each block's sum is added onto them by an `atomicAdd` that
+rounds to 8 bits, in whatever order the blocks finish, so two runs of one launch already differ. With 128
+blocks: each column holds about ±64, where one bfloat16 step is 0.25–0.5, and 128 rounded adds put about
+±1.6 between two runs, about 2.5% of the largest value. The check became a printed column instead: the
+error of the bfloat16 `weight_grad` and `bias_grad` against the float ones.
+
+### 12.4 Results
+
+| kernel | launch before → now | float, ms | bfloat16, ms | bfloat16's fastest |
+|---|---|---|---|---|
+| AdamW | 121,524 × 256 → **40 × 128** | 14.762 → 14.237 | 11.649 → 11.471 | 40 × 128 |
+| attention, forward | 6,144 × 256, one warp per row (kept) | 1.841 | 0.783 | 0.766 (1,280 × 1,024) |
+| attention, backward | 6,144 × 256 → **80 × 128** | 2.764 → 2.018 | 1.195 → 1.087 | 80 × 128 |
+| classifier, forward | 4,096 × 1,024 → **4,096 × 256** | 3.036 → 3.064 | 1.785 → 1.631 | 4,096 × 256 |
+| classifier, backward | 201,216 × 256 (kept) | 6.842 | 3.333 | 201,216 × 256 |
+| encoder, forward | 512 × 1,024 → **512 × 128** | 0.158 → 0.151 | 0.078 → 0.065 | 512 × 128 |
+| encoder, backwards | 512 × 1,024 (kept) | 0.163, 0.080 | 0.083, 0.043 | within 0.002 |
+| LayerNorm, forward | 512 × 256 → **256 × 512** | 0.138 → 0.114 | 0.062 → 0.062 | 0.060; flat 0.060–0.068 from 320 warps |
+| LayerNorm, backward | 128 × 512 → **40 × 512** | 0.326 → 0.298 | 0.261 → 0.201 | 40 × 512 |
+| GELU | 12,288 × 256 (kept) | 0.426, 0.618 | 0.210, 0.300 | within 0.001 |
+| residual | 3,072 × 256 (kept) | 0.160, 0.174 | 0.079, 0.087 | itself |
+| gradient norm | 512 × 1,024 (kept) | 1.766 | 0.925 | 0.899 (4,096 × 1,024) |
+
+*Table 27. Each kernel at the launch the code had before this part and at the one it has now, picked
+from the bfloat16 column. E2 for attention, classifier, encoder and LayerNorm; E1 for the rest. Two
+kernels kept a launch 2–3% off their bfloat16 fastest: the attention forward, where the fastest leaves
+half its warps idle (6,144 × 512 at 0.768 in E2 does the same work as 6,144 × 256), and the gradient
+norm, where 4,096 blocks would save 0.026 ms once per step and change its tests' hand-worked block
+sums.*
+
+In a training step the attention and LayerNorm kernels run once per block or more, the others once:
+
+| | runs per step | saved in bfloat16, ms | in float, ms |
+|---|---:|---:|---:|
+| attention backward | 12 | 12 × 0.108 = 1.296 | 12 × 0.746 = 8.952 |
+| LayerNorm backward | 25 | 25 × 0.060 = 1.500 | 25 × 0.028 = 0.700 |
+| LayerNorm forward | 25 | 0 | 25 × 0.024 = 0.600 |
+| AdamW | 1 | 0.178 | 0.525 |
+| classifier forward | 1 | 0.154 | −0.028 |
+| encoder forward | 1 | 0.013 | 0.007 |
+| **a training step** | | **≈ 3.1** | **≈ 10.8** |
+
+*Table 28. GPT-2 small, a batch of 4 × 1,024 tokens: 12 blocks, each with two LayerNorms, and a last
+LayerNorm. The kernels' times measured alone, added up; not a training step timed as a whole.*
+
+The bfloat16 launches also lower the bfloat16 LayerNorm's gradient error (Section 12.3): 1.12% at 40 ×
+512, 2.39% at the old 128 × 512, and up to 11% at 4,096 × 64, which adds 4,096 rounded sums onto each
+value.
+
+### 12.5 A launch picked in float can be wrong in bfloat16
+
+| | float | bfloat16 |
+|---|---:|---:|
+| attention forward at 80 × 128, float's fastest | **1.541** | 1.299 |
+| attention forward at 6,144 × 256, one warp per row | 1.841 | **0.783** |
+| LayerNorm backward at 128 × 128, float's fastest | **0.276** | 0.288 |
+| LayerNorm backward at 40 × 512 | 0.298 | **0.201** |
+
+*Table 29. E2, in ms. Between E1 and these runs the attention forward did launch 80 × 128 for a while,
+picked from a float-only sweep: in bfloat16 that made it 1.66 times slower.*
+
+Both turns fit the cache explanation of Section 11.5, with the cache that each kernel's re-reads come
+from. The attention softmax reads a row of weights, 4 KB in float, then reads it again to write it. With
+one warp per row and a full GPU, 1,280 warps at once (36 registers per thread leave room for 32 warps on
+every SM), that is 5 MB in float, more than the T4's 4 MB L2, and 2.5 MB in bfloat16, which fits. So in
+float fewer warps win (320 warps: 1.25 MB), and in bfloat16 nothing is lost by filling the GPU, and the
+extra warps keep more loads in flight. The backward reads two rows, `da` and `a`: 8 KB per warp in float,
+4 KB in bfloat16. 1,280 × 4 KB is 5 MB, over the L2 again,
+and the bfloat16 backward is fastest at 320 warps like the float one. That is a fit to two kernels, not a
+measured hit rate.
+
+LayerNorm's forward fits the L1 explanation more closely now that each block size's limit is known. The
+kernels take 66 registers per thread since they became templates for bfloat16, and a T4 hands registers
+to a warp in steps of 256, so each warp holds 72 × 32 = 2,304:
+
+| threads per block | registers per block | blocks per SM | rows per SM at most | float rows | float forward, ms |
+|---:|---:|---:|---:|---:|---|
+| 128 | 9,216 | 7 | 28 | 84 KB | 0.116–0.117 up to 512 warps, 0.144–0.148 from 1,024 |
+| 256 | 18,432 | 3 | 24 | 72 KB | 0.115–0.122 up to 640 warps, 0.137–0.154 from 1,024 |
+| 512 | 36,864 | 1 | **16** | **48 KB** | **0.114–0.123 at every count up to 2,048 blocks** (0.132 at 4,096) |
+
+*Table 30. E2. A block of 512 threads is alone on its SM, so no launch of it puts more than 16 rows in an
+SM's 64 KB of L1, and it is never slow. In bfloat16 a row is 1.5 KB and 28 rows are 42 KB: every launch
+fits, and the bfloat16 forward is flat, 0.060–0.068 ms, from 320 warps up.*
+
+That is the prediction Section 11.9 asked for, made by another route: a launch that cannot put too
+many rows in L1 is fast at any size.
+
+### 12.6 What bfloat16 is worth, kernel by kernel
+
+The kernels that only move data take half the time in bfloat16, at the same launch: GELU 0.426 → 0.210
+ms (2.03x), residual 0.160 → 0.079 (2.03x), the gradient norm 1.766 → 0.925 (1.91x), the classifier's
+backward 6.842 → 3.333 (2.05x). AdamW gains less, 14.237 → 11.471 (1.24x), close to the 28 / 22 = 1.27x
+its bytes allow, because `m` and `v` stay float. A memory-bound kernel's time is its bytes.
+
+### 12.7 Against PyTorch: one block
+
+Run F times one GPT-2 block, {4, 1024, 768} with 12 heads, 20 forwards and 20 backwards, mine and
+PyTorch's with autograd, both in bfloat16 on the same values
+([`tests/test_block.cu`](https://github.com/ducbachsong/gpt2-small/blob/c6155b4/tests/test_block.cu)):
+
+| | mine | PyTorch | PyTorch takes |
+|---|---:|---:|---:|
+| forward | **23.685** | 30.921 | **1.31x** |
+| backward | **48.362** | 49.018 | 1.01x |
+
+*Table 31. Run F, mean of steps 3–20, in ms. At the end my output and `input_grad` are within 0.54% and
+0.69% of the largest value of PyTorch's block in float on the same bfloat16 values (allowed: 3%).*
+
+**My block is faster than PyTorch's in the forward and as fast in the backward.** How much of that is
+this part's work:
+
+- **The backward: 0.23 ms of it.** A block's backward runs the attention softmax backward once and the
+  LayerNorm backward twice: 0.108 + 2 × 0.060 = 0.228 ms saved (Table 27). Without them it would take
+  about 48.59 ms against PyTorch's 49.02: even before, even after.
+- **The forward: none of it.** Its bfloat16 kernels run the launches they had before this part (the
+  attention forward one warp per row, the LayerNorm forward flat). The 1.31x was there already; this part
+  measured it for the first time, because the block test used to time float only.
+
+Where the forward's lead comes from is not measured. In float, PyTorch's attention forward is twice as
+fast as mine, 2.652 against 5.549 ms (attention's own test at commit
+[`2d0efb1`](https://github.com/ducbachsong/gpt2-small/tree/2d0efb1)): its `scaled_dot_product_attention`
+is a fused kernel that never writes the 201 MB of attention weights, which mine writes, reads and
+writes again in the softmax, and reads once more for the product with the values. As far as I can tell from PyTorch's source, both of its fused attention kernels need a GPU newer
+than a T4 for bfloat16, so in bfloat16 it would fall back to the plain path, a product, a softmax and a
+product with the weights written out, the same design as mine. If that holds, the forward is a contest
+of the same steps, and mine are faster. It is the first thing to profile (Section 12.9).
+
+Two more comparisons from this work, both in float: AdamW against PyTorch's fused AdamW, 14.077 against
+15.382 ms per update of 124 million values (PyTorch takes 1.09x, AdamW's test, commit
+[`5feb3a1`](https://github.com/ducbachsong/gpt2-small/tree/5feb3a1)); and the attention backward,
+8.336 against 11.511 ms (1.38x), where PyTorch's fused kernel has to work the weights out again because
+it never kept them.
+
+A T4 has no bfloat16 tensor cores; they came with the A100. The block's four linear layers, about four
+fifths of its multiplications (768 × 9,216 per token, against 2 × 1,024 × 768 for attention's two
+products), are cuBLAS products, and in bfloat16 on a T4 neither side's get tensor cores. Whether
+a bfloat16 step is faster than a float one on a T4 at all was not measured here.
+
+### 12.8 Threats to validity
+
+- **One run each.** E1, E2 and F are single runs. E1 and E2 repeat each other for the kernels in both
+  (the attention backward at 80 × 128: 1.097 and 1.087 ms in bfloat16), but the 1–3% differences that
+  decided no change are within what one run can tell apart.
+- **The per-step saving** adds kernel times measured alone, each in a sweep of its own; a training
+  step, where kernels share the caches, was not timed.
+- **The cache explanations** for attention (L2) and LayerNorm (L1) are fits: no hit rate was measured.
+  The register steps of 256 per warp are the T4's documented allocation, not read from the profiler.
+- **PyTorch's bfloat16 attention path** is read from its source, not profiled, and Colab's PyTorch
+  version was not recorded; the reason for the block forward's lead is open.
+- **Linking.** E1 linked the attention test against the system's cuBLAS, E2 and F against PyTorch's own
+  (Reproducibility). The softmax kernels timed do not call cuBLAS; the block's products do, in F only.
+
+### 12.9 Future work
+
+- **Profile the bfloat16 block**, mine and PyTorch's, kernel by kernel: which kernels PyTorch's attention
+  launches on a T4, and where the 7 ms of the forward go.
+- **Time the block in float and bfloat16 side by side**, to see whether bfloat16 is faster per step on a
+  T4 without tensor cores, and try half (fp16), which a T4's tensor cores do support.
+- **Time a whole training step**, to check Table 28's sum.
+- **The encoder forward at 768 × 128** in bfloat16: part 1's 12% (Table 13) repeats in float in E2
+  (0.881 of 512 × 1,024), but the bfloat16 sweep has no 768-block launch.
+
+### 12.10 Conclusion
+
+Swept in float and bfloat16 together, with launches taking turns, every kernel gives its dtype's usual
+result at every launch, and five launches change for bfloat16: AdamW 40 × 128, the attention softmax
+backward 80 × 128, the classifier forward 4,096 × 256, the encoder forward 512 × 128, and LayerNorm 256 ×
+512 and 40 × 512. In bfloat16 they save about 3.1 ms per training step, and the LayerNorm backward's
+gradient comes out twice as close to float's. A launch picked in float can be wrong in bfloat16: the
+attention forward's float-fastest launch is 1.66 times slower in bfloat16, most likely because a
+bfloat16 row is half the size and the cache that decides holds twice as many. One GPT-2 block in
+bfloat16 now runs its forward 1.31 times as fast as PyTorch's and its backward as fast; this part's
+launches account for 0.23 ms of the backward, and the forward's lead, which they did not change, is
+still to be explained.
+
 ## Reproducibility
 
 Code at commit [`e84ce51`](https://github.com/ducbachsong/gpt2-small/tree/e84ce51) (batch C; batch A
@@ -899,6 +1169,27 @@ nvcc -O3 -std=c++17 -arch=native tests/test_layer_norm.cu -o test_layer_norm \
     -L$TORCH/lib -Xlinker --no-as-needed -ltorch -ltorch_cuda -ltorch_cpu -lc10_cuda -lc10 \
     -Xlinker -rpath=$TORCH/lib
 ./test_layer_norm
+```
+
+**Part 3** is at commit [`c6155b4`](https://github.com/ducbachsong/gpt2-small/tree/c6155b4) (runs E2
+and F). The attention, linear and block tests call cuBLAS and cuBLASLt. Colab has two copies of them:
+CUDA 12's under `nvidia/cublas/lib` and the CUDA 13 one PyTorch loads, under `nvidia/cu13/lib`. Link the
+one PyTorch loads, found from its own library, and pass the files through `-Xlinker` (nvcc does not take
+a file ending in `.so.13`):
+
+```bash
+git checkout c6155b4
+CUBLAS=$(ldd $TORCH/lib/libtorch_cuda.so | grep -o '/[^ ]*libcublas\.so[^ ]*' | head -1)
+CUBLASLT=$(ldd $TORCH/lib/libtorch_cuda.so | grep -o '/[^ ]*libcublasLt\.so[^ ]*' | head -1)
+for k in adamw attention classifier encoder gelu residual layer_norm grad_norm block; do
+  nvcc -O3 -std=c++17 -arch=native tests/test_$k.cu -o test_$k \
+      -D_GLIBCXX_USE_CXX11_ABI=$ABI \
+      -I$TORCH/include -I$TORCH/include/torch/csrc/api/include \
+      -L$TORCH/lib -Xlinker --no-as-needed -ltorch -ltorch_cuda -ltorch_cpu -lc10_cuda -lc10 \
+      -Xlinker $CUBLAS -Xlinker $CUBLASLT \
+      -Xlinker -rpath=$TORCH/lib -Xlinker -rpath=$(dirname $CUBLASLT)
+  ./test_$k > run_$k.log    # one at a time: timings must not overlap
+done
 ```
 
 ## References
@@ -945,6 +1236,10 @@ Index: [README.txt](/files/encoder-launch-sizes/README.txt).
 | [c-clocks-run1.csv](/files/encoder-launch-sizes/c-clocks-run1.csv) … [c-clocks-run5.csv](/files/encoder-launch-sizes/c-clocks-run5.csv) | batch C: timestamp, SM clock, memory clock (MHz), temperature (°C) and power (W), every 200 ms |
 | [sass-loads-and-atomics.txt](/files/encoder-launch-sizes/sass-loads-and-atomics.txt) | the loads and atomics of each kernel, from `cuobjdump`, with how the program was compiled |
 | [d-run1.log](/files/encoder-launch-sizes/d-run1.log) … [d-run3.log](/files/encoder-launch-sizes/d-run3.log) | part 2, batch D, `tests/test_layer_norm.cu`: every check and the 20-step timing; D3 also part 4, the 2 LayerNorm kernels at 40 launch sizes |
+| [e1-sweeps.log](/files/encoder-launch-sizes/e1-sweeps.log) | part 3, run E1: the eight sweeps in float and bfloat16, with the launches as they were before part 3 |
+| [e2-sweeps.log](/files/encoder-launch-sizes/e2-sweeps.log) | part 3, run E2, commit `c6155b4`: the attention, classifier, LayerNorm and encoder sweeps with the new launches; the encoder's part 5 |
+| [f-block.log](/files/encoder-launch-sizes/f-block.log) | part 3, run F, commit `c6155b4`: one GPT-2 block in bfloat16, mine against PyTorch's |
+| [e-float-against-pytorch.log](/files/encoder-launch-sizes/e-float-against-pytorch.log) | part 3: AdamW (commit `5feb3a1`) and attention (commit `2d0efb1`) against PyTorch, in float |
 
 ## Versions
 
@@ -957,3 +1252,4 @@ with what it changed.
 | 2 | October 7, 2026 | Rewritten after 16 runs (batches A–C): the model tested with a float4 load, which changed the kernel; the warm-up; the 768 × 128 forward; corrections to the build note, the forward's loads and the bandwidth figures. |
 | 3 | October 8, 2026 | Section 6.3: what the float4 load changes and what it does not. |
 | 4 | October 14, 2026 | Part 2, LayerNorm (Section 11), against the launch PyTorch works out itself; the title names both kernels; this list. |
+| 5 | November 2, 2026 | Part 3, every kernel in float and bfloat16 (Section 12): sweeps that take turns, launches picked for bfloat16, one block against PyTorch's; the title names all the kernels; the Part 3 build note. |

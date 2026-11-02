@@ -1,0 +1,40 @@
+Part 3, Section 12.7: the two float comparisons with PyTorch from the same work. Google Colab, Tesla T4,
+-arch=native. Only the timing tests are kept.
+
+tests/test_adamw.cu at commit 5feb3a1 (adamw_update launches 40 x 128): 124,439,808 values (a 162,030 x 768
+matrix and a 768 bias), my AdamW against PyTorch's fused AdamW (_fused_adamw_, one call per param group), both
+after clip_grad_norm_ to 1.0. Each update reads p, g, m, v and writes p, m, v: 3.5 GB.
+
+time_20_updates_on_gpt2_small_size
+    time of one update, in ms:   step   my AdamW   PyTorch fused
+                                    1     14.137          15.373
+                                    2     14.137          15.460
+                                    3     13.964          15.340
+                                    4     13.963          15.362
+                                    5     13.942          15.341
+                                    6     13.960          15.350
+                                    7     13.963          15.354
+                                    8     13.978          15.329
+                                    9     13.987          15.370
+                                   10     14.001          15.361
+                                   11     13.982          15.318
+                                   12     14.109          15.275
+                                   13     14.133          15.369
+                                   14     14.189          15.430
+                                   15     14.184          15.380
+                                   16     14.185          15.392
+                                   17     14.196          15.447
+                                   18     14.208          15.529
+                                   19     14.201          15.393
+                                   20     14.186          15.453
+    average of steps 2..20:               14.077          15.382   PyTorch takes 1.09x as long
+
+tests/test_attention.cu at commit 2d0efb1 (both softmax kernels 80 x 128): causal self-attention, {4, 1024}
+tokens, 12 heads of 64, float, mine against PyTorch's scaled_dot_product_attention (is_causal) with autograd.
+
+time_20_steps_on_gpt2_small_size
+    average of steps 3..20:   my forward   my backward   PyTorch forward   PyTorch backward
+        ms                         5.549         8.336             2.652             11.511
+    PyTorch takes, against mine:                                    0.48x              1.38x
+    input: relative_difference_on_gpu(mine.output, pytorch_output) expected: 0 +/- 1e-05   actual: 2.10643e-07   ok  (line 251)
+    input: relative_difference_on_gpu(mine.qkv_grad, pytorch_qkv.grad()) expected: 0 +/- 1e-05   actual: 1.60654e-06   ok  (line 252)

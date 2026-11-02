@@ -1,5 +1,6 @@
-Raw logs for the post "How many threads? Launch sizes for GPT-2's encoder and LayerNorm kernels on a T4"
-(published 2026-10-07; part 2, LayerNorm, added 2026-10-14 in version 4).
+Raw logs for the post "How many threads? Launch sizes for GPT-2's kernels on a T4, in float and bfloat16"
+(published 2026-10-07; part 2, LayerNorm, added 2026-10-14 in version 4; part 3, every kernel in float and
+bfloat16, added 2026-11-02 in version 5).
 Code: https://github.com/ducbachsong/gpt2-small (branch c-cuda-trainer). All runs on Google Colab, Tesla T4,
 built with the command in the post (batches A-C: no -arch flag, Colab's nvcc built sm_75 machine code
 directly; batch D: -arch=native, which on a T4 is sm_75 as well).
@@ -42,3 +43,16 @@ d-run1.log .. d-run3.log  (part 2, LayerNorm)
                 launch sizes after a one-second warm-up. Everything passes.
 
 Copied from the notebook output.
+
+e1-sweeps.log, e2-sweeps.log, f-block.log, e-float-against-pytorch.log  (part 3, every kernel in bfloat16)
+    Batch E and run F, one run each, -arch=native. Every sweep times float and bfloat16 in the same 20
+    rounds, every launch once per round, after a one-second warm-up.
+    e1-sweeps.log  the eight sweeps of commit c6155b4's tests with the launches as they were before part 3.
+                   layer_norm's sweep stops at its count: its bfloat16 weight_grad / bias_grad check could not
+                   pass even at the usual launch (post, Section 12.3); its timings are valid.
+    e2-sweeps.log  commit c6155b4: attention, classifier, layer_norm and encoder with the new launches;
+                   layer_norm prints its bfloat16 gradient error instead of checking it.
+    f-block.log    commit c6155b4: tests/test_block.cu's timing of one block in bfloat16 against PyTorch's.
+    e-float-against-pytorch.log  the float timings against PyTorch quoted in Section 12.7: AdamW at commit
+                   5feb3a1, attention at commit 2d0efb1.
+    Only each test's sweep or timing was kept, copied from the notebook output.
