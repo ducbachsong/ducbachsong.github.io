@@ -454,7 +454,7 @@ The five functions of `distributed.cuh`:
 | `reduce_scatter_mean` | `ncclReduceScatter`, `ncclAvg` | $$\frac{1}{W} \sum_q g^{(q)}$$ over slice $$r$$, on rank $$r$$ | 4 |
 | `slice_norms_to_norm` | `ncclAllReduce`, `ncclSum` | $$\sqrt{\sum_r \lVert g_{[r]} \rVert^2}$$ on every rank | 5 |
 | `all_gather` | `ncclAllGather` | every slice onto every rank | 6 |
-| `mean` | `ncclAllReduce`, `ncclAvg` | $$\frac{1}{W} \sum_r x_r$$ of one number, such as the loss | 2.1 |
+| `mean_of_cpu_value` | `ncclAllReduce`, `ncclAvg` | $$\frac{1}{W} \sum_r x_r$$ of one CPU number, such as the loss | 2.1 |
 | `barrier` | `mean_of_cpu_value(0)` | nothing: it returns only once every rank has called it | |
 
 *Table 11. Every rank must call them in the same order. A collective cannot finish until all ranks
