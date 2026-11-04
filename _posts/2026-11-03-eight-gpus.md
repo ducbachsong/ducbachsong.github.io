@@ -444,7 +444,7 @@ grad_norm.compute(grads_slice, optimizer.grad_norm());    // Section 5: the norm
 distributed.slice_norms_to_norm(optimizer.grad_norm());   // ...then of all, sqrt of the sum of squares
 optimizer.step();                                         // Section 3: AdamW on slice r
 distributed.all_gather(optimizer.all_params());           // Section 6: every slice to every rank
-float loss = distributed.mean(loss_of_this_rank);         // the step's loss, Section 2.1, for the log
+float loss = distributed.mean_of_cpu_value(loss_of_this_rank);   // the step's loss, Section 2.1, for the log
 ```
 
 The five functions of `distributed.cuh`:
@@ -455,7 +455,7 @@ The five functions of `distributed.cuh`:
 | `slice_norms_to_norm` | `ncclAllReduce`, `ncclSum` | $$\sqrt{\sum_r \lVert g_{[r]} \rVert^2}$$ on every rank | 5 |
 | `all_gather` | `ncclAllGather` | every slice onto every rank | 6 |
 | `mean` | `ncclAllReduce`, `ncclAvg` | $$\frac{1}{W} \sum_r x_r$$ of one number, such as the loss | 2.1 |
-| `barrier` | `mean(0)` | nothing: it returns only once every rank has called it | |
+| `barrier` | `mean_of_cpu_value(0)` | nothing: it returns only once every rank has called it | |
 
 *Table 11. Every rank must call them in the same order. A collective cannot finish until all ranks
 have joined it, so a rank that skips one leaves the other seven waiting forever.*
