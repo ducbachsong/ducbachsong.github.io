@@ -3,6 +3,8 @@ title: "LayerNorm backward, broken down and rebuilt: nine chain-rule steps and o
 date: 2026-10-13
 permalink: /posts/layer-norm-backward/
 excerpt: "The backward pass of LayerNorm is usually given as one line: dx = rstd · (dx̂ − mean(dx̂) − x̂ · mean(dx̂ · x̂)). This note takes it apart into nine small steps, one per forward step, each derived with nothing more than the chain rule, and works one row of 4 numbers through all of them. Then it puts the steps back together, in seven moves, into the one line a GPU kernel runs: two sums per row instead of eight values per number. Every number is checked against PyTorch."
+categories:
+  - Backward passes
 tags:
   - layer-norm
   - backpropagation

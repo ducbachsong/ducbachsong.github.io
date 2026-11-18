@@ -13,4 +13,5 @@ author_profile: true
 ## Elsewhere
 
 - **GitHub** — [github.com/ducbachsong](https://github.com/ducbachsong)
+- **Hugging Face** — [huggingface.co/ducbachsong](https://huggingface.co/ducbachsong)
 - **LinkedIn** — [linkedin.com/in/ducbachsong](https://www.linkedin.com/in/ducbachsong)

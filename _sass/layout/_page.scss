@@ -399,3 +399,116 @@
   font-size: $type-size-6;
   text-transform: uppercase;
 }
+
+
+/*
+   Topics and series (categories)
+   ========================================================================== */
+
+.icon-emoji {
+  display: inline-block;
+  text-align: center;
+  font-style: normal;
+}
+
+.topic-index {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5em 1.25em;
+  padding-left: 0;
+  list-style: none;
+}
+
+.topic-index__count {
+  display: inline-block;
+  min-width: 1.6em;
+  padding: 0 0.4em;
+  font-size: $type-size-6;
+  text-align: center;
+  border: 1px solid var(--global-border-color);
+  border-radius: 1em;
+}
+
+.topic-description {
+  margin-top: -0.5em;
+  font-size: $type-size-5;
+  color: var(--global-text-color-light);
+}
+
+.topic-series li {
+  margin-bottom: 0.5em;
+}
+
+.topic-series__date {
+  margin-left: 0.4em;
+  font-size: $type-size-6;
+  color: var(--global-text-color-light);
+  white-space: nowrap;
+}
+
+.topic-bar {
+  .page__taxonomy-item {
+    margin-left: 0.25em;
+  }
+}
+
+.archive__item-topics {
+  margin-top: -0.5em;
+  font-size: $type-size-6;
+}
+
+.post-series {
+  margin: 1em 0;
+  padding: 0.6em 1em;
+  font-size: $type-size-6;
+  border: 1px solid var(--global-border-color);
+  border-radius: $border-radius;
+
+  summary {
+    cursor: pointer;
+  }
+}
+
+.post-series__list {
+  margin: 0.6em 0 0.2em;
+}
+
+.post-series__current {
+  font-weight: bold;
+}
+
+.post-series-nav {
+  margin-top: 2em;
+  padding-top: 1em;
+  font-size: $type-size-6;
+  border-top: 1px solid var(--global-border-color);
+}
+
+.post-series-nav__title {
+  margin-bottom: 0.5em;
+  font-weight: bold;
+}
+
+.post-series-nav__links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1em;
+  justify-content: space-between;
+
+  a {
+    flex: 1 1 14em;
+    padding: 0.6em 0.8em;
+    text-decoration: none;
+    border: 1px solid var(--global-border-color);
+    border-radius: $border-radius;
+
+    span {
+      display: block;
+      font-weight: bold;
+    }
+  }
+}
+
+.post-series-nav__next {
+  text-align: right;
+}

@@ -3,6 +3,8 @@ title: "Where a CUDA kernel's numbers live: registers, local, shared, L1, L2 and
 date: 2026-10-08
 permalink: /posts/gpu-memory/
 excerpt: "A GPU has many memories, and their names mix up where a memory is with what it is for: local memory is not near the thread, and a warp has no memory of its own. This note goes through them one level at a time, the thread, the warp, the block, the SM, the chip and the card, and says for each what memory it has, what that memory is for and who decides what goes in it. Then it follows a value through them: a load, a store, an atomic add, a spill, shared memory and a shuffle. With the numbers of a Tesla T4 and the encoder kernels of my GPT-2 trainer."
+categories:
+  - CUDA kernels
 tags:
   - cuda
   - gpu

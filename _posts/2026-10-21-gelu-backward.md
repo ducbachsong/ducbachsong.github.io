@@ -5,6 +5,8 @@ modified: 2026-10-28
 version: 2
 permalink: /posts/gelu-backward/
 excerpt: "The backward pass of GELU is usually given as one line: dx = dy · gelu'(x), with a slope of two terms and a tanh in each. This note takes the forward apart into five small steps, from x to a gate between 0 and 1 and back to y = x times the gate, and the backward into seven, each derived with nothing more than the chain rule, and works four numbers through all of them. x is used twice, so its gradient has two parts: the gate as it is, and how fast the gate opens. Then it puts the steps back together into the one slope a GPU kernel runs. Two checks follow from the formula, and every number is checked against PyTorch."
+categories:
+  - Backward passes
 tags:
   - gelu
   - backpropagation

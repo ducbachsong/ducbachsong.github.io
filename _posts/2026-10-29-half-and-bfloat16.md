@@ -3,6 +3,8 @@ title: "Half and bfloat16: two ways to fit a float into 16 bits"
 date: 2026-10-29
 permalink: /posts/half-and-bfloat16/
 excerpt: "A float is 32 bits: a sign, an exponent and a fraction. Half and bfloat16 keep 16 of them, and they keep different ones: half keeps more fraction bits, so more digits, and bfloat16 keeps all the exponent bits, so float's whole range. This note builds a float from its bits with one formula, cuts it to 16 bits both ways, and works out from the formula everything that follows: the largest and smallest values, how far apart neighbours are, how a value is rounded and how far the rounding can move it. Then it shows the three things that go wrong when a model trains in 16 bits, too-small gradients, too-small updates and long sums, each with a number, and how my GPT-2 trainer keeps its tensors in bfloat16 and still does every sum in float."
+categories:
+  - Mixed precision
 tags:
   - floating-point
   - mixed-precision

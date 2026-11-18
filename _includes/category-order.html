@@ -1,0 +1,19 @@
+{% comment %}
+  Sets `category_names`: every category used by a post, in the order of
+  _data/categories.yml, then any others by name. Names are joined with "|".
+{% endcomment %}
+{% assign category_names = "" %}
+{% for c in site.data.categories %}
+  {% if site.categories[c.name] %}
+    {% assign category_names = category_names | append: c.name | append: "|" %}
+  {% endif %}
+{% endfor %}
+{% assign extra_names = "" %}
+{% for pair in site.categories %}
+  {% assign known = site.data.categories | where: "name", pair[0] | first %}
+  {% unless known %}
+    {% assign extra_names = extra_names | append: pair[0] | append: "|" %}
+  {% endunless %}
+{% endfor %}
+{% assign extra_sorted = extra_names | split: "|" | sort_natural | join: "|" %}
+{% assign category_names = category_names | append: extra_sorted | split: "|" %}

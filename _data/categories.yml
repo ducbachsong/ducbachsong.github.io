@@ -1,0 +1,26 @@
+# Topics for posts, in the order they are listed on /categories/ and /posts/.
+#
+# A post joins a topic with its front matter:
+#
+#   categories:
+#     - Backward passes
+#
+# The name must match `name` below exactly (no commas). Inside a topic, posts are
+# read as a series, oldest first; two posts on the same day are ordered by the
+# time in their `date` (e.g. `date: 2026-11-13 10:00`). A category used in a
+# post but missing here still works; it is listed after these, by name.
+
+- name: "CUDA kernels"
+  description: "How a kernel runs on the GPU: threads, warps and blocks, the memories, and tuning a matrix multiply."
+
+- name: "Backward passes"
+  description: "Each layer of GPT-2 taken apart into chain-rule steps and put back together into what a kernel runs, ending with the whole block and flash attention."
+
+- name: "Tensor cores"
+  description: "Matrix instructions from mma.sync on Ampere to Hopper's TMA and WGMMA, down to which thread holds which number and which bit says what."
+
+- name: "Mixed precision"
+  description: "Training in 16 bits: half and bfloat16, and why the model keeps a float copy of its weights."
+
+- name: "Distributed training"
+  description: "Training one model on several GPUs: averaging gradients, splitting the optimizer, and what the collectives cost."

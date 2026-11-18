@@ -5,6 +5,8 @@ modified: 2026-10-28
 version: 4
 permalink: /posts/classifier-backward/
 excerpt: "The last step of GPT-2 turns each row of 50257 scores into one loss, and its backward pass is usually given as one line: dz = p − 1 at the right word. This note takes the forward apart into five small steps, from the logits to a shift by the row's largest score, an exp, a sum and a log, and the backward into seven, each derived line by line with the chain rule, and works one row of four words through all of them. The sum turns every column's gradient into its probability, the target's column gets one more part, −1, and the shift drops out. Then it puts the steps back together into the one line a GPU kernel runs, and shows how the kernel finds the row's largest score and its sum in one read of the row: the online softmax."
+categories:
+  - Backward passes
 tags:
   - softmax
   - cross-entropy

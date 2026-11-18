@@ -5,6 +5,8 @@ modified: 2026-10-28
 version: 3
 permalink: /posts/linear-backward/
 excerpt: "The backward pass of a linear layer is usually given as three lines: dx = dy · W, dW = dyᵀ · x, db = the column sums of dy. This note takes it apart into three small steps, one for each input of the forward formula, each derived with nothing more than the chain rule, and works two rows of 4 numbers through all of them. The layer has the shape of LayerNorm's last step, with one difference: the gradient of the input is a sum. Then it puts the steps back together, in two moves, into the three matrix products a GPU kernel runs, and shows where each ᵀ comes from: from which index a sum runs over. Two checks follow from the formulas, and every number is checked against PyTorch."
+categories:
+  - Backward passes
 tags:
   - linear-layer
   - backpropagation

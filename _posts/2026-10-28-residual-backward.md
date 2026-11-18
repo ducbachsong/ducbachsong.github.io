@@ -1,10 +1,12 @@
 ---
 title: "Residual add backward, broken down and rebuilt: one plus sign and a gradient that passes through"
-date: 2026-10-28
+date: 2026-10-28 09:00
 modified: 2026-10-28
 version: 2
 permalink: /posts/residual-backward/
 excerpt: "Every block of GPT-2 adds what its attention or MLP gives back onto the row it was given: y = r + b. The backward pass of that add is the shortest of all, the gradient going on unchanged to both, but the residual is also the branch's input, so its gradient has a second part, and that part is where the add earns its place. This note takes one add apart into four small steps, each derived with the chain rule written out in full, and works one row of 4 numbers through all of them. Then it puts them back together, for one add and for 24 of them stacked, and shows why the gradient reaches the first block of a deep network at all: the product of 24 slopes becomes a product of 24 times (1 + slope), and its first term, 1, is a path that skips every branch."
+categories:
+  - Backward passes
 tags:
   - residual-connection
   - backpropagation

@@ -3,6 +3,8 @@ title: "Training on eight GPUs: one average of the gradients, cut into slices"
 date: 2026-11-03
 permalink: /posts/eight-gpus/
 excerpt: "Eight GPUs train one GPT-2 small by each reading its own batches and then agreeing on one step. This note works out why the step they agree on is the average of their gradients, why AdamW can then be split so each GPU updates only one eighth of the parameters, and why gradient clipping is the one place where the split needs extra care: the norm of all the gradients comes from the norms of the slices through their squares, sqrt(13 + 41), not 3.61 + 6.40. It counts what moving the data costs, 217.8 MB sent by each GPU for each of the two collectives, and what the split saves, 1.31 GB of optimizer state per GPU. Then it shows how the eight processes find each other at the start."
+categories:
+  - Distributed training
 tags:
   - gpt-2
   - distributed training

@@ -5,6 +5,8 @@ modified: 2026-10-21
 version: 3
 permalink: /posts/linear-kernel-tuning/
 excerpt: "The linear layer kernel of my GPT-2 trainer started the day at 1.47 times PyTorch's time for one training step's matrix products, and ended it at 1.06. This note goes through every run in order: the idea behind it, the change, what the timing test and the profiler said, and what I kept. Five changes made it faster, five made no difference, two made it slower. The last run compares the kernel with cuBLAS's own at the level of machine code, and edits that machine code by hand to see where the remaining 10% comes from. Eight figures draw the final kernel step by step, from the whole product down to one thread's multiply-adds. The conclusion: PyTorch's matrix products are NVIDIA's cuBLAS, tuned for years, and the same layer written as four cuBLAS calls takes 0.97 times PyTorch's time, so that is what the trainer will use."
+categories:
+  - CUDA kernels
 tags:
   - cuda
   - matmul

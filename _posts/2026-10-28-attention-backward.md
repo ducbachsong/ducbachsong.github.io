@@ -1,10 +1,12 @@
 ---
 title: "Attention backward, broken down and rebuilt: nine chain-rule steps, a softmax over a whole row and four matrix products"
-date: 2026-10-28
+date: 2026-10-28 10:00
 modified: 2026-10-29
 version: 2
 permalink: /posts/attention-backward/
 excerpt: "Causal self-attention is how each token of GPT-2 takes in the tokens before it: a query asks, keys answer, and values are passed on, mixed by weights that add up to 1. Its backward pass is usually given as four matrix products and a softmax line. This note takes one head apart into six forward steps and nine backward steps, each derived with the chain rule written out in full, and works one head of 3 tokens through all of them. The softmax here gets a gradient on every weight, not only the target's as in the classifier, and its backward comes out as one line: ds = a (da − row_dot). Then it puts the steps back together into the four products a GPU runs with cuBLAS, and shows where each ᵀ and each sum comes from."
+categories:
+  - Backward passes
 tags:
   - attention
   - softmax

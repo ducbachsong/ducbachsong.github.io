@@ -9,6 +9,9 @@
     {% if site.author.github %}
       <li><a href="https://github.com/{{ site.author.github }}"><i class="fab fa-github" aria-hidden="true"></i> GitHub</a></li>
     {% endif %}
+    {% if site.author.huggingface %}
+      <li><a href="https://huggingface.co/{{ site.author.huggingface }}"><span aria-hidden="true">&#129303;</span> Hugging Face</a></li>
+    {% endif %}
     {% if site.author.bitbucket %}
       <li><a href="https://bitbucket.org/{{ site.author.bitbucket }}"><i class="fab fa-bitbucket" aria-hidden="true"></i> Bitbucket</a></li>
     {% endif %}

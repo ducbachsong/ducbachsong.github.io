@@ -46,6 +46,12 @@
          <p class="page__date"><strong><i class="fa fa-fw fa-calendar" aria-hidden="true"></i> {{ site.data.ui-text[site.locale].date_label | default: "Published:" }}</strong> <time datetime="{{ post.date | default: "1900-01-01" | date_to_xmlschema }}">{{ post.date | default: "1900-01-01" | date: "%B %d, %Y" }}</time>{% if post.modified %} &middot; <strong><i class="fa fa-fw fa-clock-rotate-left" aria-hidden="true"></i> Updated:</strong> <time datetime="{{ post.modified | date_to_xmlschema }}">{{ post.modified | date: "%B %d, %Y" }}</time>{% if post.version %} (version {{ post.version }}){% endif %}{% endif %}</p>
         {% endif %}
 
+    {% if post.collection == 'posts' and post.categories[0] %}
+      <p class="archive__item-topics"><i class="fa fa-fw fa-folder-open" aria-hidden="true"></i>
+      {% for name in post.categories %}<a href="{{ base_path }}{{ site.category_archive.path }}#{{ name | slugify }}">{{ name }}</a>{% unless forloop.last %}, {% endunless %}{% endfor %}
+      </p>
+    {% endif %}
+
     {% if post.excerpt and site.read_more != 'enabled' %}
     <p class="archive__item-excerpt" itemprop="description">{{ post.excerpt | markdownify }}</p>
     {% elsif post.excerpt and site.read_more == 'enabled' %}

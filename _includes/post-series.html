@@ -1,0 +1,56 @@
+{% comment %}
+  The series box of a post: for each of its categories, which part this post is,
+  the whole list (oldest first), and the previous and next post in the series.
+  include.position is "top" (part number and the list) or "bottom" (previous / next).
+{% endcomment %}
+{% include base_path %}
+{% if page.collection == "posts" and page.categories[0] %}
+  {% for name in page.categories %}
+    {% assign series = site.categories[name] | reverse %}
+    {% assign index = nil %}
+    {% for post in series %}
+      {% if post.url == page.url %}{% assign index = forloop.index0 %}{% endif %}
+    {% endfor %}
+    {% if index != nil %}
+      {% assign part = index | plus: 1 %}
+      {% assign prev_index = index | minus: 1 %}
+      {% assign next_index = index | plus: 1 %}
+      {% if include.position == "top" %}
+        <details class="post-series">
+          <summary>
+            <i class="fa fa-fw fa-folder-open" aria-hidden="true"></i>
+            Part {{ part }} of {{ series.size }} in
+            <a href="{{ base_path }}{{ site.category_archive.path }}#{{ name | slugify }}">{{ name }}</a>
+          </summary>
+          <ol class="post-series__list">
+          {% for post in series %}
+            {% assign title = post.title | markdownify | remove: "<p>" | remove: "</p>" | strip %}
+            {% if forloop.index0 == index %}
+              <li class="post-series__current" aria-current="page">{{ title }}</li>
+            {% else %}
+              <li><a href="{{ base_path }}{{ post.url }}">{{ title }}</a></li>
+            {% endif %}
+          {% endfor %}
+          </ol>
+        </details>
+      {% elsif series.size > 1 %}
+        <nav class="post-series-nav" aria-label="{{ name }} series">
+          <p class="post-series-nav__title">
+            <i class="fa fa-fw fa-folder-open" aria-hidden="true"></i>
+            <a href="{{ base_path }}{{ site.category_archive.path }}#{{ name | slugify }}">{{ name }}</a>, part {{ part }} of {{ series.size }}
+          </p>
+          <div class="post-series-nav__links">
+            {% if index > 0 %}
+              {% assign prev = series[prev_index] %}
+              <a class="post-series-nav__prev" href="{{ base_path }}{{ prev.url }}"><span>&larr; Previous</span>{{ prev.title | markdownify | remove: "<p>" | remove: "</p>" | strip }}</a>
+            {% endif %}
+            {% if next_index < series.size %}
+              {% assign next = series[next_index] %}
+              <a class="post-series-nav__next" href="{{ base_path }}{{ next.url }}"><span>Next &rarr;</span>{{ next.title | markdownify | remove: "<p>" | remove: "</p>" | strip }}</a>
+            {% endif %}
+          </div>
+        </nav>
+      {% endif %}
+    {% endif %}
+  {% endfor %}
+{% endif %}

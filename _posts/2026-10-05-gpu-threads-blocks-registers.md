@@ -3,6 +3,8 @@ title: "How a CUDA kernel uses threads, warps, blocks and registers"
 date: 2026-10-05
 permalink: /posts/gpu-threads-blocks-registers/
 excerpt: "How a CUDA launch becomes threads, warps and blocks on the GPU's SMs, how several blocks share one SM, how to choose between many small blocks and a few big ones, what registers are and who decides how many a thread gets, how to spend them to cut the time spent waiting for memory, and what happens when they run out. Explained on one small kernel, with the numbers of a Tesla T4, and based on NVIDIA's documentation and published measurements."
+categories:
+  - CUDA kernels
 tags:
   - cuda
   - gpu

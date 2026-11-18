@@ -1,0 +1,32 @@
+---
+layout: archive
+title: "Posts by topic"
+permalink: /categories/
+author_profile: true
+---
+
+{% include base_path %}
+{% include category-order.html %}
+
+<p>Each topic is a series: read it from the top, oldest first. A post links back to its place in the series.</p>
+
+<ul class="topic-index">
+{% for name in category_names %}
+  <li><a href="#{{ name | slugify }}">{{ name }}</a> <span class="topic-index__count">{{ site.categories[name].size }}</span></li>
+{% endfor %}
+</ul>
+
+{% for name in category_names %}
+  {% assign info = site.data.categories | where: "name", name | first %}
+  <h2 id="{{ name | slugify }}" class="archive__subtitle">{{ name }}</h2>
+  {% if info.description %}<p class="topic-description">{{ info.description }}</p>{% endif %}
+  <ol class="topic-series">
+  {% assign series = site.categories[name] | reverse %}
+  {% for post in series %}
+    <li>
+      <a href="{{ base_path }}{{ post.url }}">{{ post.title | markdownify | remove: "<p>" | remove: "</p>" | strip }}</a>
+      <span class="topic-series__date">{{ post.date | date: "%b %d, %Y" }}</span>
+    </li>
+  {% endfor %}
+  </ol>
+{% endfor %}

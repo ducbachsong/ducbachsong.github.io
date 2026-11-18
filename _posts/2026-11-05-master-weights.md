@@ -3,6 +3,8 @@ title: "Master weights: why a bfloat16 model keeps a float copy of itself"
 date: 2026-11-05
 permalink: /posts/master-weights/
 excerpt: "My GPT-2 trainer runs its model in bfloat16 but keeps a second copy of every weight in float, the master weights, that only the optimizer touches. This note works out why from two facts: bfloat16 throws away any change smaller than half the gap to the next value, and an AdamW step moves a weight by at most about the learning rate. Put together, GPT-2's 19,200 LayerNorm weights would never move at all, and the other weights lose their updates in the first 71 steps and the last 3,800. With a float master the error the model sees stays below half a gap forever, instead of growing every step; the kernel does it in the same one pass, with the same 28 bytes per weight and the same memory as training in float."
+categories:
+  - Mixed precision
 tags:
   - mixed-precision
   - bfloat16

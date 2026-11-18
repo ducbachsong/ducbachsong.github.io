@@ -5,6 +5,8 @@ modified: 2026-10-15
 version: 1
 permalink: /posts/matmul-outer-product/
 excerpt: "A matrix product is usually taught as row times column: each output is one dot product, an inner product. The same numbers come out of a second order: take one column of the left matrix and one row of the right, multiply every value by every value into a whole grid, an outer product, and add one grid for each value of the summed index. This note works both ways through one small example, shows that they do the same products in the same order, and counts why the linear layer kernel of my GPT-2 trainer uses the second: for each value it reads, it does 4 multiply-adds in a thread and 64 in a block, where the first way does half of one."
+categories:
+  - CUDA kernels
 tags:
   - cuda
   - matmul
